@@ -3,13 +3,13 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { signOutAdmin } from "./actions";
 
 const navigation = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/competitions", label: "Competitions" },
-  { href: "/admin/participants", label: "Participants" },
-  { href: "/admin/leaderboards", label: "Leaderboards" },
-  { href: "/admin/winners", label: "Winners" },
-  { href: "/admin/payments", label: "Payments" },
-  { href: "/admin/reports", label: "Reports" },
+  { href: "/admin", label: "Overview", ready: true },
+  { href: "/admin/competitions", label: "Competitions", ready: false },
+  { href: "/admin/participants", label: "Participants", ready: false },
+  { href: "/admin/leaderboards", label: "Leaderboards", ready: false },
+  { href: "/admin/winners", label: "Winners", ready: false },
+  { href: "/admin/payments", label: "Payments", ready: false },
+  { href: "/admin/reports", label: "Reports", ready: false },
 ];
 
 const roleLabels: Record<string, string> = {
@@ -53,15 +53,29 @@ export default async function AdminDashboardLayout({
           </div>
 
           <nav className="flex gap-2 overflow-x-auto px-4 pb-5 lg:block lg:space-y-1 lg:overflow-visible lg:px-4 lg:pb-0">
-            {navigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="whitespace-nowrap rounded-xl px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-white/10 hover:text-white lg:block"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navigation.map((item) =>
+              item.ready ? (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="block whitespace-nowrap rounded-xl bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/15"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <span
+                  key={item.label}
+                  aria-disabled="true"
+                  title="This module will be added in a later implementation phase"
+                  className="block cursor-not-allowed whitespace-nowrap rounded-xl px-4 py-3 text-sm font-bold text-blue-300/55"
+                >
+                  {item.label}
+                  <span className="ml-2 text-[9px] font-black uppercase tracking-[0.12em]">
+                    Soon
+                  </span>
+                </span>
+              ),
+            )}
           </nav>
 
           <div className="mt-auto hidden border-t border-white/10 p-4 lg:block">
