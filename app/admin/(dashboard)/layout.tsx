@@ -4,7 +4,7 @@ import { signOutAdmin } from "./actions";
 
 const navigation = [
   { href: "/admin", label: "Overview", ready: true },
-  { href: "/admin/competitions", label: "Competitions", ready: false },
+  { href: "/admin/competitions", label: "Competitions", ready: true },
   { href: "/admin/participants", label: "Participants", ready: false },
   { href: "/admin/leaderboards", label: "Leaderboards", ready: false },
   { href: "/admin/winners", label: "Winners", ready: false },
@@ -58,7 +58,7 @@ export default async function AdminDashboardLayout({
                 <Link
                   key={item.label}
                   href={item.href}
-                  className="block whitespace-nowrap rounded-xl bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/15"
+                  className="block whitespace-nowrap rounded-xl px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-white/10 hover:text-white"
                 >
                   {item.label}
                 </Link>
