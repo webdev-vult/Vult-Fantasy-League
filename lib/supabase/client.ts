@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/types/database";
 
 function getSupabasePublicConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,5 +17,5 @@ function getSupabasePublicConfig() {
 export function createBrowserSupabaseClient() {
   const { url, publishableKey } = getSupabasePublicConfig();
 
-  return createBrowserClient(url, publishableKey);
+  return createBrowserClient<Database>(url, publishableKey);
 }
