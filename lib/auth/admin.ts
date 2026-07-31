@@ -5,6 +5,18 @@ import type { Tables } from "@/types/database";
 
 export type AdminProfile = Tables<"admin_profiles">;
 
+export const ADMIN_ROLES = [
+  "super_admin",
+  "competition_manager",
+  "compliance_officer",
+  "finance_officer",
+  "content_manager",
+  "support_officer",
+  "auditor",
+] as const;
+
+export type AdminRole = (typeof ADMIN_ROLES)[number];
+
 export const getCurrentAdmin = cache(async (): Promise<AdminProfile | null> => {
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
@@ -33,6 +45,23 @@ export async function requireAdmin() {
 
   if (!admin) {
     redirect("/admin/login?error=not_authorized");
+  }
+
+  return admin;
+}
+
+export function adminHasRole(
+  admin: Pick<AdminProfile, "role">,
+  allowedRoles: readonly AdminRole[],
+) {
+  return allowedRoles.includes(admin.role as AdminRole);
+}
+
+export async function requireAdminRole(allowedRoles: readonly AdminRole[]) {
+  const admin = await requireAdmin();
+
+  if (!adminHasRole(admin, allowedRoles)) {
+    redirect("/admin?error=insufficient_permissions");
   }
 
   return admin;
