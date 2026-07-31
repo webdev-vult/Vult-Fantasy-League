@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -120,18 +121,25 @@ export default async function AdminOverviewPage() {
               </p>
             </div>
           </div>
+
+          <Link
+            href="/admin/competitions"
+            className="mt-6 inline-flex rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-950/15"
+          >
+            Manage competitions and seasons
+          </Link>
         </article>
 
         <article className="rounded-3xl bg-[var(--brand-strong)] p-6 text-white shadow-xl shadow-blue-950/15 sm:p-8">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">
             Next implementation
           </p>
-          <h2 className="mt-3 text-2xl font-black">Competition and season management</h2>
+          <h2 className="mt-3 text-2xl font-black">Participant registration and verification</h2>
           <p className="mt-4 leading-7 text-blue-100">
-            The next module will allow authorised staff to edit dates, season status, provider settings, rules and prize periods without changing code.
+            The next module will capture participants, seasonal registrations, Vult details and fantasy entry IDs, then move each record through verification and approval.
           </p>
           <div className="mt-7 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-semibold text-blue-100">
-            Authentication and role protection are now the foundation for every administrative workflow.
+            Competition and season settings can now be controlled from the admin portal.
           </div>
         </article>
       </section>
