@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdminRole } from "@/lib/auth/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/database";
 
 const MANAGEMENT_ROLES = ["super_admin", "competition_manager"] as const;
 
@@ -92,7 +93,7 @@ function assertAllowed<T extends readonly string[]>(
   allowed: T,
   label: string,
 ): T[number] {
-  if (!allowed.includes(value)) {
+  if (!(allowed as readonly string[]).includes(value)) {
     throw new Error(`${label} is invalid.`);
   }
 
@@ -109,7 +110,7 @@ async function writeAuditLog(
   action: string,
   entityType: string,
   entityId: string,
-  metadata: Record<string, unknown>,
+  metadata: Json,
 ) {
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.from("audit_logs").insert({
