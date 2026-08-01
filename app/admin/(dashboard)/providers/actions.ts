@@ -4,7 +4,10 @@ import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdminRole } from "@/lib/auth/admin";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  createAdminSupabaseClient,
+  createServerSupabaseClient,
+} from "@/lib/supabase/server";
 import {
   CsvFantasyProvider,
   MockFantasyProvider,
@@ -134,13 +137,13 @@ async function loadProviderContext(db: any, competitionSeasonId: string): Promis
 }
 
 async function persistPreparedBatch(
-  db: any,
   context: ProviderContext,
   provider: ProviderKind,
   triggerSource: "manual" | "csv_upload" | "retry",
   batch: PreparedProviderBatch,
   idempotencyKey: string,
   responseHash: string,
+  requestedBy: string,
   parentRunId: string | null = null,
 ) {
   if (!context.settings.is_enabled) throw new Error("Provider ingestion is disabled for this season.");
@@ -151,7 +154,8 @@ async function persistPreparedBatch(
   if (!context.entries.length) throw new Error("No fantasy entries exist for this competition season.");
 
   const validation = validateProviderRecords(batch.records, context.entries, context.rounds);
-  const { data, error } = await db.rpc("persist_provider_batch", {
+  const serverDb = createAdminSupabaseClient() as any;
+  const { data, error } = await serverDb.rpc("persist_provider_batch", {
     p_competition_season_id: context.season.id,
     p_provider: provider,
     p_trigger_source: triggerSource,
@@ -163,6 +167,7 @@ async function persistPreparedBatch(
     p_records: validation.records,
     p_errors: validation.issues,
     p_parent_run_id: parentRunId,
+    p_requested_by: requestedBy,
   });
 
   if (error) throw new Error(error.message);
@@ -250,7 +255,7 @@ export async function updateProviderSettingsAction(formData: FormData) {
 }
 
 export async function uploadCsvProviderAction(formData: FormData) {
-  await requireAdminRole(MANAGEMENT_ROLES);
+  const admin = await requireAdminRole(MANAGEMENT_ROLES);
   const competitionSeasonId = requiredText(formData, "competition_season_id", "Competition season");
 
   try {
@@ -270,13 +275,13 @@ export async function uploadCsvProviderAction(formData: FormData) {
     const batch = new CsvFantasyProvider().prepare({ text: contents, fileName: file.name });
     const responseHash = hashPayload(contents);
     const runId = await persistPreparedBatch(
-      db,
       context,
       "csv",
       "csv_upload",
       batch,
       `csv:${competitionSeasonId}:${responseHash}`,
       responseHash,
+      admin.id,
     );
 
     refreshProviders();
@@ -292,7 +297,7 @@ export async function uploadCsvProviderAction(formData: FormData) {
 }
 
 export async function runMockProviderAction(formData: FormData) {
-  await requireAdminRole(MANAGEMENT_ROLES);
+  const admin = await requireAdminRole(MANAGEMENT_ROLES);
   const competitionSeasonId = requiredText(formData, "competition_season_id", "Competition season");
 
   try {
@@ -316,13 +321,13 @@ export async function runMockProviderAction(formData: FormData) {
     const serialized = JSON.stringify(batch.responseData);
     const responseHash = hashPayload(serialized);
     const runId = await persistPreparedBatch(
-      db,
       context,
       "mock",
       "manual",
       batch,
       `mock:${competitionSeasonId}:${round.external_round_id}:${randomUUID()}`,
       responseHash,
+      admin.id,
     );
 
     refreshProviders();
@@ -338,7 +343,7 @@ export async function runMockProviderAction(formData: FormData) {
 }
 
 export async function retryProviderRunAction(formData: FormData) {
-  await requireAdminRole(MANAGEMENT_ROLES);
+  const admin = await requireAdminRole(MANAGEMENT_ROLES);
   const competitionSeasonId = requiredText(formData, "competition_season_id", "Competition season");
 
   try {
@@ -397,13 +402,13 @@ export async function retryProviderRunAction(formData: FormData) {
       responseData,
     };
     const newRunId = await persistPreparedBatch(
-      db,
       context,
       runResult.data.provider as ProviderKind,
       "retry",
       batch,
       `retry:${runId}:${runResult.data.attempt_number + 1}:${responseHash}`,
       responseHash,
+      admin.id,
       runId,
     );
 
