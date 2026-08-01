@@ -21,7 +21,7 @@ This document is the permanent delivery tracker for the Vult Fantasy Competition
 | 4 | Competition operations configuration | Completed |
 | 5 | Public website and participant registration | Completed |
 | 6 | Participant verification and management | Completed |
-| 7 | Fantasy data-provider integration | In Progress |
+| 7 | Fantasy data-provider integration | In Review |
 | 8 | Scores and leaderboards | Pending |
 | 9 | Winner calculation and approval | Pending |
 | 10 | Prize and payment management | Pending |
