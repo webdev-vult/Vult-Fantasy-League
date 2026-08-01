@@ -18,8 +18,8 @@ This document is the permanent delivery tracker for the Vult Fantasy Competition
 | 1 | Platform foundation | Completed |
 | 2 | Admin authentication and security | Completed |
 | 3 | Competition and season management | Completed |
-| 4 | Competition operations configuration | In Review |
-| 5 | Public website and participant registration | Pending |
+| 4 | Competition operations configuration | Completed |
+| 5 | Public website and participant registration | In Review |
 | 6 | Participant verification and management | Pending |
 | 7 | Fantasy data-provider integration | Pending |
 | 8 | Scores and leaderboards | Pending |
