@@ -51,6 +51,15 @@ function redirectWithMessage(type: "success" | "error", message: string, seasonI
   redirect(`/admin/providers?${params.toString()}`);
 }
 
+function isRedirectSignal(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    String((error as { digest?: unknown }).digest ?? "").startsWith("NEXT_REDIRECT")
+  );
+}
+
 function hashPayload(value: string) {
   return createHash("sha256").update(value).digest("hex");
 }
@@ -273,6 +282,7 @@ export async function uploadCsvProviderAction(formData: FormData) {
     refreshProviders();
     redirectWithMessage("success", "CSV provider batch imported and validated.", competitionSeasonId, runId);
   } catch (error) {
+    if (isRedirectSignal(error)) throw error;
     redirectWithMessage(
       "error",
       error instanceof Error ? error.message : "Unable to import the CSV provider batch.",
@@ -318,6 +328,7 @@ export async function runMockProviderAction(formData: FormData) {
     refreshProviders();
     redirectWithMessage("success", "Mock provider batch generated and staged.", competitionSeasonId, runId);
   } catch (error) {
+    if (isRedirectSignal(error)) throw error;
     redirectWithMessage(
       "error",
       error instanceof Error ? error.message : "Unable to run the mock provider.",
@@ -388,7 +399,7 @@ export async function retryProviderRunAction(formData: FormData) {
     const newRunId = await persistPreparedBatch(
       db,
       context,
-      runResult.data.provider,
+      runResult.data.provider as ProviderKind,
       "retry",
       batch,
       `retry:${runId}:${runResult.data.attempt_number + 1}:${responseHash}`,
@@ -399,6 +410,7 @@ export async function retryProviderRunAction(formData: FormData) {
     refreshProviders();
     redirectWithMessage("success", "Provider sync retry completed.", competitionSeasonId, newRunId);
   } catch (error) {
+    if (isRedirectSignal(error)) throw error;
     redirectWithMessage(
       "error",
       error instanceof Error ? error.message : "Unable to retry the provider sync.",
