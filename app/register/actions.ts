@@ -45,9 +45,11 @@ export async function submitRegistrationAction(
     return { error: "Complete all required registration fields." };
   }
 
+  let data: any;
+
   try {
     const db = createAdminSupabaseClient() as any;
-    const { data, error } = await db.rpc("submit_public_registration", {
+    const response = await db.rpc("submit_public_registration", {
       p_competition_season_slug: competitionSlug,
       p_full_name: value(formData, "full_name"),
       p_date_of_birth: dateOfBirth,
@@ -65,30 +67,28 @@ export async function submitRegistrationAction(
       p_honeypot: value(formData, "company"),
     });
 
-    if (error) {
-      return { error: safeErrorMessage(error.message) };
+    if (response.error) {
+      return { error: safeErrorMessage(response.error.message) };
     }
 
-    const result = Array.isArray(data) ? data[0] : data;
-    const reference = result?.registration_reference;
-
-    if (!reference) {
-      return {
-        error:
-          "Your registration was received, but the confirmation reference was unavailable.",
-      };
-    }
-
-    redirect(`/register/success?reference=${encodeURIComponent(reference)}`);
+    data = response.data;
   } catch (error) {
-    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
-      throw error;
-    }
-
     console.error("Public registration configuration error", error);
     return {
       error:
         "Registration is temporarily unavailable. Please try again later or contact Vult support.",
     };
   }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  const reference = result?.registration_reference;
+
+  if (!reference) {
+    return {
+      error:
+        "Your registration was received, but the confirmation reference was unavailable.",
+    };
+  }
+
+  redirect(`/register/success?reference=${encodeURIComponent(reference)}`);
 }
