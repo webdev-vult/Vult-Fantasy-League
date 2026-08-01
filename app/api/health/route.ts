@@ -10,6 +10,9 @@ export function GET() {
       supabasePublishableKeyConfigured: Boolean(
         process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
       ),
+      supabaseServiceRoleConfigured: Boolean(
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+      ),
       fantasyProvider: process.env.FANTASY_DATA_PROVIDER ?? "mock",
     },
     timestamp: new Date().toISOString(),
