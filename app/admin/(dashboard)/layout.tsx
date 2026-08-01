@@ -7,6 +7,7 @@ const navigation = [
   { href: "/admin/competitions", label: "Competitions", ready: true },
   { href: "/admin/operations", label: "Operations", ready: true },
   { href: "/admin/participants", label: "Participants", ready: true },
+  { href: "/admin/providers", label: "Providers", ready: true },
   { href: "/admin/leaderboards", label: "Leaderboards", ready: false },
   { href: "/admin/winners", label: "Winners", ready: false },
   { href: "/admin/payments", label: "Payments", ready: false },
