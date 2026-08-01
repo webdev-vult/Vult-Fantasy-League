@@ -1,4 +1,7 @@
+import "server-only";
+
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/database";
 
@@ -13,6 +16,19 @@ function getSupabasePublicConfig() {
   }
 
   return { url, publishableKey };
+}
+
+function getSupabaseAdminConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) {
+    throw new Error(
+      "Supabase admin access is not configured. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+    );
+  }
+
+  return { url, serviceRoleKey };
 }
 
 export async function createServerSupabaseClient() {
@@ -34,6 +50,18 @@ export async function createServerSupabaseClient() {
           // be handled by the authentication proxy added in the auth phase.
         }
       },
+    },
+  });
+}
+
+export function createAdminSupabaseClient() {
+  const { url, serviceRoleKey } = getSupabaseAdminConfig();
+
+  return createClient<Database>(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
     },
   });
 }
