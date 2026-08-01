@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 export const PRIMARY_COMPETITION_SLUG = "vult-epl-fantasy-league-2026-27";
 
@@ -76,71 +76,85 @@ function isRegistrationOpen(
 }
 
 export async function getPublicCompetition(): Promise<PublicCompetition> {
-  const supabase = await createServerSupabaseClient();
-  const db = supabase as any;
-  const { data } = await db
-    .from("competition_seasons")
-    .select(
-      "id, slug, name, status, registration_opens_at, registration_closes_at, starts_at, ends_at, rules_version",
-    )
-    .eq("slug", PRIMARY_COMPETITION_SLUG)
-    .maybeSingle();
+  try {
+    const db = createAdminSupabaseClient() as any;
+    const { data, error } = await db
+      .from("competition_seasons")
+      .select(
+        "id, slug, name, status, registration_opens_at, registration_closes_at, starts_at, ends_at, rules_version",
+      )
+      .eq("slug", PRIMARY_COMPETITION_SLUG)
+      .maybeSingle();
 
-  if (!data) return fallbackCompetition;
+    if (error || !data) return fallbackCompetition;
 
-  return {
-    id: data.id,
-    slug: data.slug,
-    name: data.name,
-    status: data.status,
-    registrationOpensAt: data.registration_opens_at,
-    registrationClosesAt: data.registration_closes_at,
-    startsAt: data.starts_at,
-    endsAt: data.ends_at,
-    rulesVersion: data.rules_version,
-    registrationOpen: isRegistrationOpen(
-      data.status,
-      data.registration_opens_at,
-      data.registration_closes_at,
-    ),
-  };
+    return {
+      id: data.id,
+      slug: data.slug,
+      name: data.name,
+      status: data.status,
+      registrationOpensAt: data.registration_opens_at,
+      registrationClosesAt: data.registration_closes_at,
+      startsAt: data.starts_at,
+      endsAt: data.ends_at,
+      rulesVersion: data.rules_version,
+      registrationOpen: isRegistrationOpen(
+        data.status,
+        data.registration_opens_at,
+        data.registration_closes_at,
+      ),
+    };
+  } catch (error) {
+    console.error("Unable to load public competition state", error);
+    return fallbackCompetition;
+  }
 }
 
 export async function getPublishedRules(competitionSeasonId: string | null) {
   if (!competitionSeasonId) return null;
 
-  const supabase = await createServerSupabaseClient();
-  const db = supabase as any;
-  const { data } = await db
-    .from("competition_rules")
-    .select(
-      "id, version, title, minimum_age, eligible_country_codes, requires_vult_account, one_entry_per_participant, employees_eligible, weekly_chip_policy, include_transfer_deductions, repeat_weekly_winners_allowed, dispute_window_hours, tie_breakers, disqualification_rules, notes, published_at",
-    )
-    .eq("competition_season_id", competitionSeasonId)
-    .eq("status", "published")
-    .order("version", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  try {
+    const db = createAdminSupabaseClient() as any;
+    const { data, error } = await db
+      .from("competition_rules")
+      .select(
+        "id, version, title, minimum_age, eligible_country_codes, requires_vult_account, one_entry_per_participant, employees_eligible, weekly_chip_policy, include_transfer_deductions, repeat_weekly_winners_allowed, dispute_window_hours, tie_breakers, disqualification_rules, notes, published_at",
+      )
+      .eq("competition_season_id", competitionSeasonId)
+      .eq("status", "published")
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-  return (data as PublicRule | null) ?? null;
+    if (error) return null;
+    return (data as PublicRule | null) ?? null;
+  } catch (error) {
+    console.error("Unable to load published rules", error);
+    return null;
+  }
 }
 
 export async function getActivePrizes(competitionSeasonId: string | null) {
   if (!competitionSeasonId) return [] as PublicPrize[];
 
-  const supabase = await createServerSupabaseClient();
-  const db = supabase as any;
-  const { data } = await db
-    .from("prizes")
-    .select(
-      "id, code, name, description, frequency, position, amount, currency, prize_type, non_cash_description, payment_method, payment_deadline_days",
-    )
-    .eq("competition_season_id", competitionSeasonId)
-    .eq("is_active", true)
-    .order("frequency")
-    .order("position");
+  try {
+    const db = createAdminSupabaseClient() as any;
+    const { data, error } = await db
+      .from("prizes")
+      .select(
+        "id, code, name, description, frequency, position, amount, currency, prize_type, non_cash_description, payment_method, payment_deadline_days",
+      )
+      .eq("competition_season_id", competitionSeasonId)
+      .eq("is_active", true)
+      .order("frequency")
+      .order("position");
 
-  return (data as PublicPrize[] | null) ?? [];
+    if (error) return [];
+    return (data as PublicPrize[] | null) ?? [];
+  } catch (error) {
+    console.error("Unable to load active prizes", error);
+    return [];
+  }
 }
 
 export function formatPublicDate(value: string | null) {
