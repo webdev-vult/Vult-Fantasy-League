@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 export type RegistrationState = {
   error: string | null;
@@ -45,36 +45,50 @@ export async function submitRegistrationAction(
     return { error: "Complete all required registration fields." };
   }
 
-  const supabase = await createServerSupabaseClient();
-  const db = supabase as any;
-  const { data, error } = await db.rpc("submit_public_registration", {
-    p_competition_season_slug: competitionSlug,
-    p_full_name: value(formData, "full_name"),
-    p_date_of_birth: dateOfBirth,
-    p_phone: value(formData, "phone"),
-    p_whatsapp_phone: value(formData, "whatsapp_phone"),
-    p_email: value(formData, "email"),
-    p_city: value(formData, "city"),
-    p_country: value(formData, "country"),
-    p_vult_customer_ref: value(formData, "vult_customer_ref"),
-    p_fpl_entry_id: value(formData, "fpl_entry_id"),
-    p_fpl_team_name: value(formData, "fpl_team_name"),
-    p_rules_consent: formData.get("rules_consent") === "on",
-    p_privacy_consent: formData.get("privacy_consent") === "on",
-    p_publicity_consent: formData.get("publicity_consent") === "on",
-    p_honeypot: value(formData, "company"),
-  });
+  try {
+    const db = createAdminSupabaseClient() as any;
+    const { data, error } = await db.rpc("submit_public_registration", {
+      p_competition_season_slug: competitionSlug,
+      p_full_name: value(formData, "full_name"),
+      p_date_of_birth: dateOfBirth,
+      p_phone: value(formData, "phone"),
+      p_whatsapp_phone: value(formData, "whatsapp_phone"),
+      p_email: value(formData, "email"),
+      p_city: value(formData, "city"),
+      p_country: value(formData, "country"),
+      p_vult_customer_ref: value(formData, "vult_customer_ref"),
+      p_fpl_entry_id: value(formData, "fpl_entry_id"),
+      p_fpl_team_name: value(formData, "fpl_team_name"),
+      p_rules_consent: formData.get("rules_consent") === "on",
+      p_privacy_consent: formData.get("privacy_consent") === "on",
+      p_publicity_consent: formData.get("publicity_consent") === "on",
+      p_honeypot: value(formData, "company"),
+    });
 
-  if (error) {
-    return { error: safeErrorMessage(error.message) };
+    if (error) {
+      return { error: safeErrorMessage(error.message) };
+    }
+
+    const result = Array.isArray(data) ? data[0] : data;
+    const reference = result?.registration_reference;
+
+    if (!reference) {
+      return {
+        error:
+          "Your registration was received, but the confirmation reference was unavailable.",
+      };
+    }
+
+    redirect(`/register/success?reference=${encodeURIComponent(reference)}`);
+  } catch (error) {
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
+
+    console.error("Public registration configuration error", error);
+    return {
+      error:
+        "Registration is temporarily unavailable. Please try again later or contact Vult support.",
+    };
   }
-
-  const result = Array.isArray(data) ? data[0] : data;
-  const reference = result?.registration_reference;
-
-  if (!reference) {
-    return { error: "Your registration was received, but the confirmation reference was unavailable." };
-  }
-
-  redirect(`/register/success?reference=${encodeURIComponent(reference)}`);
 }
