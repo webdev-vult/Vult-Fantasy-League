@@ -21,8 +21,8 @@ This document is the permanent delivery tracker for the Vult Fantasy Competition
 | 4 | Competition operations configuration | Completed |
 | 5 | Public website and participant registration | Completed |
 | 6 | Participant verification and management | Completed |
-| 7 | Fantasy data-provider integration | In Review |
-| 8 | Scores and leaderboards | Pending |
+| 7 | Fantasy data-provider integration | Completed |
+| 8 | Scores and leaderboards | In Review |
 | 9 | Winner calculation and approval | Pending |
 | 10 | Prize and payment management | Pending |
 | 11 | Notifications, announcements and disputes | Pending |
@@ -70,7 +70,7 @@ Mock and CSV provider adapters, replaceable provider contracts, immutable raw sn
 
 ## Phase 8 — Scores and leaderboards
 
-Provisional and final round scores, monthly aggregation, overall standings, score history, transfer deductions, chip data, corrections, locking, public leaderboards, search, and filters.
+Validated provider-score promotion, provisional and final Gameweek scores, transfer deductions, chip-based weekly eligibility, point-based rankings that preserve ties for Phase 9 review, monthly aggregation, overall standings, correction history, finalisation, versioned privacy-safe publication snapshots, public search, filters, and pagination.
 
 ## Phase 9 — Winner calculation and approval
 
@@ -105,6 +105,7 @@ agent/phase-4-competition-operations
 agent/phase-5-participant-registration
 agent/phase-6-participant-verification
 agent/phase-7-fantasy-provider
+agent/phase-8-scores-leaderboards
 ```
 
 ## Completion rule
