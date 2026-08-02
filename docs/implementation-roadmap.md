@@ -23,8 +23,8 @@ This document is the permanent delivery tracker for the Vult Fantasy Competition
 | 6 | Participant verification and management | Completed |
 | 7 | Fantasy data-provider integration | Completed |
 | 8 | Scores and leaderboards | Completed |
-| 9 | Winner calculation and approval | In Review |
-| 10 | Prize and payment management | Pending |
+| 9 | Winner calculation and approval | Completed |
+| 10 | Prize and payment management | In Review |
 | 11 | Notifications, announcements and disputes | Pending |
 | 12 | Reports, analytics and audit | Pending |
 | 13 | Testing, launch and annual rollover | Pending |
@@ -87,7 +87,18 @@ Validated provider-score promotion, provisional and final Gameweek scores, trans
 
 ## Phase 10 — Prize and payment management
 
-Prize assignment, Vult-account confirmation, finance approval, payment processing, transaction references, evidence, failures, reversals, and payment reports.
+- Prepare one controlled settlement obligation per confirmed winner
+- Snapshot winner, prize, amount, currency, payment method and deadline
+- Require a verified Vult destination for every cash or mixed prize
+- Separate Compliance Vult-account verification from Finance approval
+- Require Finance to credit the winner manually in the main Vult system
+- Record the transaction only after the credit is visible on the winner account
+- Capture the Vult transaction reference, credited account, credit time, evidence and notes
+- Never initiate a payment, reimbursement or reversal through a Vult API
+- Retain immutable settlement, reconciliation and external-correction audit records
+- Cancel unpaid settlements and require Super Admin authority to reopen them
+- Export season payment reports without exposing browser write access
+- Keep the fantasy platform as an approval and audit ledger, not a money-movement system
 
 ## Phase 11 — Notifications, announcements and disputes
 
@@ -103,7 +114,7 @@ Security testing, role testing, scoring tests, mobile checks, performance, backu
 
 ## Phase 14 — Advanced features
 
-Mobile app, automated wallet payouts, social graphics, certificates, referrals, sponsor modules, AI insights, prediction games, and additional competitions.
+Mobile app, social graphics, certificates, referrals, sponsor modules, AI insights, prediction games, and additional competitions.
 
 ## Branch naming
 
@@ -116,6 +127,7 @@ agent/phase-6-participant-verification
 agent/phase-7-fantasy-provider
 agent/phase-8-scores-leaderboards
 agent/phase-9-winner-approval
+agent/phase-10-prize-payments
 ```
 
 ## Completion rule
