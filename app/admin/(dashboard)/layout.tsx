@@ -9,7 +9,7 @@ const navigation = [
   { href: "/admin/participants", label: "Participants", ready: true },
   { href: "/admin/providers", label: "Providers", ready: true },
   { href: "/admin/leaderboards", label: "Leaderboards", ready: true },
-  { href: "/admin/winners", label: "Winners", ready: false },
+  { href: "/admin/winners", label: "Winners", ready: true },
   { href: "/admin/payments", label: "Payments", ready: false },
   { href: "/admin/reports", label: "Reports", ready: false },
 ];

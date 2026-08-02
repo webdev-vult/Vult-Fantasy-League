@@ -22,8 +22,8 @@ This document is the permanent delivery tracker for the Vult Fantasy Competition
 | 5 | Public website and participant registration | Completed |
 | 6 | Participant verification and management | Completed |
 | 7 | Fantasy data-provider integration | Completed |
-| 8 | Scores and leaderboards | In Review |
-| 9 | Winner calculation and approval | Pending |
+| 8 | Scores and leaderboards | Completed |
+| 9 | Winner calculation and approval | In Review |
 | 10 | Prize and payment management | Pending |
 | 11 | Notifications, announcements and disputes | Pending |
 | 12 | Reports, analytics and audit | Pending |
@@ -74,7 +74,16 @@ Validated provider-score promotion, provisional and final Gameweek scores, trans
 
 ## Phase 9 — Winner calculation and approval
 
-Eligibility engine, chip rules, tie-breakers, weekly/monthly/overall winner candidates, competition review, compliance approval, rejection, confirmation, and publication readiness.
+- Generate weekly, monthly and overall candidates from final standings
+- Evaluate registration, participant, FPL, Vult-account, age, country, employee, duplicate, chip and repeat-winner eligibility
+- Store immutable eligibility checks and every evaluated entry
+- Apply versioned tie-breakers without changing public tied leaderboard ranks
+- Separate competition review from independent compliance review
+- Require Super Admin confirmation after both approval stages
+- Reject candidates with documented reasons and generate the next eligible replacement
+- Preserve replacement lineage and status history
+- Block public naming when winner-publicity consent is not recorded
+- Mark confirmed winners as ready for Phase 10 without creating payment records
 
 ## Phase 10 — Prize and payment management
 
@@ -106,6 +115,7 @@ agent/phase-5-participant-registration
 agent/phase-6-participant-verification
 agent/phase-7-fantasy-provider
 agent/phase-8-scores-leaderboards
+agent/phase-9-winner-approval
 ```
 
 ## Completion rule
