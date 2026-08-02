@@ -25,8 +25,8 @@ This document is the permanent delivery tracker for the Vult Fantasy Competition
 | 8 | Scores and leaderboards | Completed |
 | 9 | Winner calculation and approval | Completed |
 | 10 | Prize and payment management | Completed |
-| 11 | Notifications, announcements and disputes | In Review |
-| 12 | Reports, analytics and audit | Pending |
+| 11 | Notifications, announcements and disputes | Completed |
+| 12 | Reports, analytics and audit | In Review |
 | 13 | Testing, launch and annual rollover | Pending |
 | 14 | Advanced and future features | Pending |
 
@@ -121,7 +121,18 @@ Validated provider-score promotion, provisional and final Gameweek scores, trans
 
 ## Phase 12 — Reports, analytics and audit
 
-Operational reports, management analytics, season comparison, participant retention, prize spending, exports, and searchable audit history.
+- Provide role-aware, read-only management reporting for every configured season
+- Show registration, eligibility, FPL verification, Vult verification and duplicate-risk funnels
+- Monitor provider syncs, rounds, score promotion, leaderboard publication and winner workflows
+- Report payment status, configured prize value, committed settlements, paid value and reversals by currency
+- Track dispute volume, overdue cases, categories and notification delivery status
+- Compare seasons using registrations, participants, finalised rounds, leaderboards, winners and paid prizes
+- Calculate new versus returning participants and retention rate without hardcoding a season
+- Show data freshness for each operational module
+- Restrict searchable audit history to Super Admin and Auditor
+- Filter audit events by text, action, entity, actor and date range
+- Export season summary, operations, participant retention, prize spending and audit history as formula-safe CSV
+- Record every export in immutable export history and the audit log
 
 ## Phase 13 — Testing, launch and annual rollover
 
@@ -144,6 +155,7 @@ agent/phase-8-scores-leaderboards
 agent/phase-9-winner-approval
 agent/phase-10-prize-payments
 agent/phase-11-communications-disputes
+agent/phase-12-reports-analytics-audit
 ```
 
 ## Completion rule
