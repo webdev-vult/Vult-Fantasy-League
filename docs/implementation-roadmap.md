@@ -20,8 +20,8 @@ This document is the permanent delivery tracker for the Vult Fantasy Competition
 | 3 | Competition and season management | Completed |
 | 4 | Competition operations configuration | Completed |
 | 5 | Public website and participant registration | Completed |
-| 6 | Participant verification and management | In Review |
-| 7 | Fantasy data-provider integration | Pending |
+| 6 | Participant verification and management | Completed |
+| 7 | Fantasy data-provider integration | In Review |
 | 8 | Scores and leaderboards | Pending |
 | 9 | Winner calculation and approval | Pending |
 | 10 | Prize and payment management | Pending |
@@ -66,7 +66,7 @@ Admin participant list, duplicate detection, FPL verification, Vult verification
 
 ## Phase 7 — Fantasy data-provider integration
 
-Mock, CSV, approved FPL, or licensed provider adapters; raw snapshots; validation; pagination; retries; caching; scheduled synchronisation; and integration-error tracking.
+Mock and CSV provider adapters, replaceable provider contracts, immutable raw snapshots, normalized staging records, validation, idempotency, retry lineage, structured integration errors, provider settings, and execution history. Approved FPL or licensed network connectors remain disabled until written data approval and credentials are available. Phase 7 does not publish leaderboard scores; Phase 8 promotes reviewed staging records into scoring.
 
 ## Phase 8 — Scores and leaderboards
 
