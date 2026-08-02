@@ -31,6 +31,7 @@ export default async function AdminOverviewPage() {
     db
       .from("competition_seasons")
       .select("name, status, data_provider, registration_opens_at, registration_closes_at")
+      .order("registration_opens_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -56,7 +57,7 @@ export default async function AdminOverviewPage() {
             Welcome, {admin.full_name.split(" ")[0]}
           </h1>
           <p className="mt-3 max-w-2xl leading-7 text-[var(--muted)]">
-            Monitor registrations, competition operations, winner approvals, manual Vult payment records, communications and participant disputes.
+            Monitor registrations, competition operations, winner approvals, manual Vult payment records, communications, disputes and management reports.
           </p>
         </div>
         <span className="w-fit rounded-full border border-green-200 bg-green-50 px-4 py-2 text-xs font-black text-green-700">
@@ -131,6 +132,12 @@ export default async function AdminOverviewPage() {
               Manage competitions
             </Link>
             <Link
+              href="/admin/reports"
+              className="inline-flex rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-black text-[var(--brand)]"
+            >
+              Open reports
+            </Link>
+            <Link
               href="/admin/payments"
               className="inline-flex rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-black text-[var(--brand)]"
             >
@@ -141,14 +148,17 @@ export default async function AdminOverviewPage() {
 
         <article className="rounded-3xl bg-[var(--brand-strong)] p-6 text-white shadow-xl shadow-blue-950/15 sm:p-8">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">
-            Participant communication
+            Reporting and communication
           </p>
-          <h2 className="mt-3 text-2xl font-black">Announcements, messages and case review</h2>
+          <h2 className="mt-3 text-2xl font-black">Analytics, announcements and case review</h2>
           <p className="mt-4 leading-7 text-blue-100">
-            Publish official updates, manage the manual email and WhatsApp delivery queue, and resolve participant disputes with complete evidence and status history.
+            Compare seasons, monitor operational performance and prize spending, publish official updates, and resolve participant disputes with complete evidence and audit history.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link href="/admin/communications" className="rounded-xl bg-white px-4 py-3 text-sm font-black text-[var(--brand-strong)]">
+            <Link href="/admin/reports" className="rounded-xl bg-white px-4 py-3 text-sm font-black text-[var(--brand-strong)]">
+              Reports
+            </Link>
+            <Link href="/admin/communications" className="rounded-xl border border-white/20 px-4 py-3 text-sm font-black text-white">
               Communications
             </Link>
             <Link href="/admin/disputes" className="rounded-xl border border-white/20 px-4 py-3 text-sm font-black text-white">
@@ -156,7 +166,7 @@ export default async function AdminOverviewPage() {
             </Link>
           </div>
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-semibold text-blue-100">
-            Email and WhatsApp records remain manual until an approved delivery provider is configured.
+            Management reports are read-only. Every CSV export is recorded in export history and the immutable audit log.
           </div>
         </article>
       </section>
