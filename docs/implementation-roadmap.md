@@ -89,17 +89,16 @@ Validated provider-score promotion, provisional and final Gameweek scores, trans
 
 - Prepare one controlled settlement obligation per confirmed winner
 - Snapshot winner, prize, amount, currency, payment method and deadline
-- Require verified Vult destinations for configured wallet settlements
-- Separate Compliance destination review from Finance approval
-- Record manual, imported and future Vult API payment attempts with idempotency
-- Retain successful and failed attempts, transaction references and evidence
-- Support documented retries after failed attempts
-- Cancel settlements and require Super Admin authority to reopen them
-- Require Super Admin approval before Finance processes a reversal
-- Return reversed winners to payment-pending status for controlled re-payment
-- Record immutable reconciliation reviews, mismatches and resolutions
+- Require a verified Vult destination for every cash or mixed prize
+- Separate Compliance Vult-account verification from Finance approval
+- Require Finance to credit the winner manually in the main Vult system
+- Record the transaction only after the credit is visible on the winner account
+- Capture the Vult transaction reference, credited account, credit time, evidence and notes
+- Never initiate a payment, reimbursement or reversal through a Vult API
+- Retain immutable settlement, reconciliation and external-correction audit records
+- Cancel unpaid settlements and require Super Admin authority to reopen them
 - Export season payment reports without exposing browser write access
-- Keep external automatic payouts disabled until an approved Vult API connector is available
+- Keep the fantasy platform as an approval and audit ledger, not a money-movement system
 
 ## Phase 11 — Notifications, announcements and disputes
 
@@ -115,7 +114,7 @@ Security testing, role testing, scoring tests, mobile checks, performance, backu
 
 ## Phase 14 — Advanced features
 
-Mobile app, automated wallet payouts, social graphics, certificates, referrals, sponsor modules, AI insights, prediction games, and additional competitions.
+Mobile app, social graphics, certificates, referrals, sponsor modules, AI insights, prediction games, and additional competitions.
 
 ## Branch naming
 
