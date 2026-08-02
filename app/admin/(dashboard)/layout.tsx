@@ -11,6 +11,8 @@ const navigation = [
   { href: "/admin/leaderboards", label: "Leaderboards", ready: true },
   { href: "/admin/winners", label: "Winners", ready: true },
   { href: "/admin/payments", label: "Payments", ready: true },
+  { href: "/admin/communications", label: "Communications", ready: true },
+  { href: "/admin/disputes", label: "Disputes", ready: true },
   { href: "/admin/reports", label: "Reports", ready: false },
 ];
 

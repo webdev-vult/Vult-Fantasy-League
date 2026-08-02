@@ -9,34 +9,26 @@ function formatNumber(value: number | null) {
 export default async function AdminOverviewPage() {
   const admin = await requireAdmin();
   const supabase = await createServerSupabaseClient();
+  const db = supabase as any;
 
   const [
     participantsResult,
     registrationsResult,
-    pendingWinnersResult,
-    pendingPaymentsResult,
+    activeDisputesResult,
+    pendingNotificationsResult,
     competitionSeasonResult,
   ] = await Promise.all([
-    supabase.from("participants").select("id", { count: "exact", head: true }),
-    supabase.from("registrations").select("id", { count: "exact", head: true }),
-    supabase
-      .from("winner_candidates")
+    db.from("participants").select("id", { count: "exact", head: true }),
+    db.from("registrations").select("id", { count: "exact", head: true }),
+    db
+      .from("disputes")
       .select("id", { count: "exact", head: true })
-      .in("status", ["provisional", "under_review", "competition_approved", "compliance_approved"]),
-    supabase
-      .from("prize_payments")
+      .not("status", "in", "(resolved,rejected,closed)"),
+    db
+      .from("notification_outbox")
       .select("id", { count: "exact", head: true })
-      .in("status", [
-        "destination_pending",
-        "finance_review",
-        "approved",
-        "processing",
-        "failed",
-        "reversal_requested",
-        "reversal_approved",
-        "reversal_processing",
-      ]),
-    supabase
+      .in("status", ["queued", "manual_pending", "failed"]),
+    db
       .from("competition_seasons")
       .select("name, status, data_provider, registration_opens_at, registration_closes_at")
       .order("created_at", { ascending: false })
@@ -47,8 +39,8 @@ export default async function AdminOverviewPage() {
   const metrics = [
     { label: "Participants", value: formatNumber(participantsResult.count), note: "Permanent profiles" },
     { label: "Registrations", value: formatNumber(registrationsResult.count), note: "Across all seasons" },
-    { label: "Winner reviews", value: formatNumber(pendingWinnersResult.count), note: "Awaiting a decision" },
-    { label: "Active settlements", value: formatNumber(pendingPaymentsResult.count), note: "Finance and reversal workflow" },
+    { label: "Active disputes", value: formatNumber(activeDisputesResult.count), note: "Open participant cases" },
+    { label: "Delivery queue", value: formatNumber(pendingNotificationsResult.count), note: "Pending or failed records" },
   ];
 
   const competitionSeason = competitionSeasonResult.data;
@@ -64,7 +56,7 @@ export default async function AdminOverviewPage() {
             Welcome, {admin.full_name.split(" ")[0]}
           </h1>
           <p className="mt-3 max-w-2xl leading-7 text-[var(--muted)]">
-            Monitor registration, competition operations, winner approvals and controlled prize settlements from this workspace.
+            Monitor registrations, competition operations, winner approvals, manual Vult payment records, communications and participant disputes.
           </p>
         </div>
         <span className="w-fit rounded-full border border-green-200 bg-green-50 px-4 py-2 text-xs font-black text-green-700">
@@ -84,7 +76,7 @@ export default async function AdminOverviewPage() {
         ))}
       </section>
 
-      <section className="mt-6 grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+      <section className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <article className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -142,21 +134,29 @@ export default async function AdminOverviewPage() {
               href="/admin/payments"
               className="inline-flex rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-black text-[var(--brand)]"
             >
-              Open payment operations
+              Open payment records
             </Link>
           </div>
         </article>
 
         <article className="rounded-3xl bg-[var(--brand-strong)] p-6 text-white shadow-xl shadow-blue-950/15 sm:p-8">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">
-            Controlled settlement
+            Participant communication
           </p>
-          <h2 className="mt-3 text-2xl font-black">Winner to payment workflow</h2>
+          <h2 className="mt-3 text-2xl font-black">Announcements, messages and case review</h2>
           <p className="mt-4 leading-7 text-blue-100">
-            Confirmed winners move through destination verification, finance approval, payment attempts, reconciliation and dual-control reversals.
+            Publish official updates, manage the manual email and WhatsApp delivery queue, and resolve participant disputes with complete evidence and status history.
           </p>
-          <div className="mt-7 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-semibold text-blue-100">
-            Automatic external payouts remain disabled until an approved Vult API connector is available.
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link href="/admin/communications" className="rounded-xl bg-white px-4 py-3 text-sm font-black text-[var(--brand-strong)]">
+              Communications
+            </Link>
+            <Link href="/admin/disputes" className="rounded-xl border border-white/20 px-4 py-3 text-sm font-black text-white">
+              Disputes
+            </Link>
+          </div>
+          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-semibold text-blue-100">
+            Email and WhatsApp records remain manual until an approved delivery provider is configured.
           </div>
         </article>
       </section>
