@@ -13,7 +13,7 @@ const navigation = [
   { href: "/admin/payments", label: "Payments", ready: true },
   { href: "/admin/communications", label: "Communications", ready: true },
   { href: "/admin/disputes", label: "Disputes", ready: true },
-  { href: "/admin/reports", label: "Reports", ready: false },
+  { href: "/admin/reports", label: "Reports", ready: true },
 ];
 
 const roleLabels: Record<string, string> = {
