@@ -23,8 +23,8 @@ This document is the permanent delivery tracker for the Vult Fantasy Competition
 | 6 | Participant verification and management | Completed |
 | 7 | Fantasy data-provider integration | Completed |
 | 8 | Scores and leaderboards | Completed |
-| 9 | Winner calculation and approval | In Review |
-| 10 | Prize and payment management | Pending |
+| 9 | Winner calculation and approval | Completed |
+| 10 | Prize and payment management | In Progress |
 | 11 | Notifications, announcements and disputes | Pending |
 | 12 | Reports, analytics and audit | Pending |
 | 13 | Testing, launch and annual rollover | Pending |
@@ -87,7 +87,19 @@ Validated provider-score promotion, provisional and final Gameweek scores, trans
 
 ## Phase 10 — Prize and payment management
 
-Prize assignment, Vult-account confirmation, finance approval, payment processing, transaction references, evidence, failures, reversals, and payment reports.
+- Prepare one controlled settlement obligation per confirmed winner
+- Snapshot winner, prize, amount, currency, payment method and deadline
+- Require verified Vult destinations for configured wallet settlements
+- Separate Compliance destination review from Finance approval
+- Record manual, imported and future Vult API payment attempts with idempotency
+- Retain successful and failed attempts, transaction references and evidence
+- Support documented retries after failed attempts
+- Cancel settlements and require Super Admin authority to reopen them
+- Require Super Admin approval before Finance processes a reversal
+- Return reversed winners to payment-pending status for controlled re-payment
+- Record immutable reconciliation reviews, mismatches and resolutions
+- Export season payment reports without exposing browser write access
+- Keep external automatic payouts disabled until an approved Vult API connector is available
 
 ## Phase 11 — Notifications, announcements and disputes
 
@@ -116,6 +128,7 @@ agent/phase-6-participant-verification
 agent/phase-7-fantasy-provider
 agent/phase-8-scores-leaderboards
 agent/phase-9-winner-approval
+agent/phase-10-prize-payments
 ```
 
 ## Completion rule
