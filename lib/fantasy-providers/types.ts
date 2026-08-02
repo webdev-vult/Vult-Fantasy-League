@@ -56,6 +56,7 @@ export type PreparedProviderBatch = {
   sourceLabel: string;
   sourceEndpoint: string;
   responseData: Record<string, unknown> | unknown[];
+  issues?: ProviderValidationIssue[];
 };
 
 export interface FantasyDataProvider<TInput> {
