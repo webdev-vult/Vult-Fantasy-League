@@ -60,6 +60,19 @@ type FplPicks = {
   [key: string]: unknown;
 };
 
+type EntryFetchResult =
+  | {
+      ok: true;
+      entry: ProviderEntryContext;
+      history: FplHistory;
+      picks: FplPicks;
+    }
+  | {
+      ok: false;
+      entry: ProviderEntryContext;
+      error: unknown;
+    };
+
 export type ApprovedFplProviderInput = {
   entries: ProviderEntryContext[];
   round: ProviderRoundContext;
@@ -94,17 +107,17 @@ class FplRequestError extends Error {
 }
 
 function resolveBaseUrl(input?: string) {
-  const candidate = new URL(input || process.env.FPL_BASE_URL || DEFAULT_FPL_BASE_URL);
-  if (candidate.protocol !== "https:" || candidate.hostname !== ALLOWED_FPL_HOST) {
+  const url = new URL(input || process.env.FPL_BASE_URL || DEFAULT_FPL_BASE_URL);
+  if (url.protocol !== "https:" || url.hostname !== ALLOWED_FPL_HOST) {
     throw new Error("The FPL connector only permits HTTPS requests to fantasy.premierleague.com.");
   }
-  candidate.pathname = candidate.pathname.replace(/\/$/, "");
-  candidate.search = "";
-  candidate.hash = "";
-  return candidate.toString();
+  url.pathname = url.pathname.replace(/\/$/, "");
+  url.search = "";
+  url.hash = "";
+  return url.toString();
 }
 
-function safeInteger(value: unknown, fallback: number | null = null) {
+function integer(value: unknown, fallback: number | null = null) {
   return typeof value === "number" && Number.isInteger(value) ? value : fallback;
 }
 
@@ -112,24 +125,19 @@ function sleep(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function fetchFplJson<T>(
-  baseUrl: string,
-  endpoint: string,
-  timeoutSeconds: number,
-  maxAttempts = 3,
-): Promise<T> {
+async function fetchJson<T>(baseUrl: string, endpoint: string, timeoutSeconds: number): Promise<T> {
   let lastError: unknown = null;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutSeconds * 1000);
+    const timer = setTimeout(() => controller.abort(), timeoutSeconds * 1000);
 
     try {
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: "GET",
         cache: "no-store",
-        redirect: "error",
         credentials: "omit",
+        redirect: "error",
         signal: controller.signal,
         headers: {
           accept: "application/json",
@@ -137,42 +145,41 @@ async function fetchFplJson<T>(
         },
       });
 
-      const contentLength = Number(response.headers.get("content-length") ?? "0");
-      if (contentLength > MAX_RESPONSE_BYTES) {
-        throw new FplRequestError("The FPL response exceeded the configured size limit.", endpoint, response.status, false);
+      const declaredBytes = Number(response.headers.get("content-length") ?? "0");
+      if (declaredBytes > MAX_RESPONSE_BYTES) {
+        throw new FplRequestError("The FPL response exceeded the size limit.", endpoint, response.status, false);
       }
 
       if (!response.ok) {
         const retriable = response.status === 429 || response.status >= 500;
-        const error = new FplRequestError(
+        const requestError = new FplRequestError(
           `FPL returned HTTP ${response.status} for ${endpoint}.`,
           endpoint,
           response.status,
           retriable,
         );
-        if (!retriable || attempt === maxAttempts) throw error;
-
+        if (!retriable || attempt === 3) throw requestError;
         const retryAfter = Number(response.headers.get("retry-after") ?? "0");
         await sleep(retryAfter > 0 ? retryAfter * 1000 : attempt * 750);
-        lastError = error;
+        lastError = requestError;
         continue;
       }
 
-      const text = await response.text();
-      if (Buffer.byteLength(text, "utf8") > MAX_RESPONSE_BYTES) {
-        throw new FplRequestError("The FPL response exceeded the configured size limit.", endpoint, response.status, false);
+      const body = await response.text();
+      if (Buffer.byteLength(body, "utf8") > MAX_RESPONSE_BYTES) {
+        throw new FplRequestError("The FPL response exceeded the size limit.", endpoint, response.status, false);
       }
 
       try {
-        return JSON.parse(text) as T;
+        return JSON.parse(body) as T;
       } catch {
-        throw new FplRequestError("FPL returned an invalid JSON response.", endpoint, response.status, true);
+        throw new FplRequestError("FPL returned invalid JSON.", endpoint, response.status, true);
       }
     } catch (error) {
       lastError = error;
       const retriable =
         error instanceof FplRequestError ? error.retriable : error instanceof Error && error.name === "AbortError";
-      if (!retriable || attempt === maxAttempts) {
+      if (!retriable || attempt === 3) {
         if (error instanceof FplRequestError) throw error;
         throw new FplRequestError(
           error instanceof Error && error.name === "AbortError"
@@ -187,50 +194,60 @@ async function fetchFplJson<T>(
       }
       await sleep(attempt * 750);
     } finally {
-      clearTimeout(timeout);
+      clearTimeout(timer);
     }
   }
 
   throw lastError instanceof Error ? lastError : new Error("FPL request failed.");
 }
 
-async function mapWithConcurrency<T, R>(items: T[], concurrency: number, worker: (item: T) => Promise<R>) {
-  const results = new Array<R>(items.length);
-  let cursor = 0;
-
-  async function runWorker() {
-    while (cursor < items.length) {
-      const index = cursor;
-      cursor += 1;
-      results[index] = await worker(items[index]);
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => runWorker()));
-  return results;
-}
-
-function getChip(history: FplHistory, picks: FplPicks, eventId: number) {
+function chipForEvent(history: FplHistory, picks: FplPicks, eventId: number) {
   if (typeof picks.active_chip === "string" && picks.active_chip.trim()) return picks.active_chip.trim();
-  const historyChip = history.chips?.find((chip) => chip.event === eventId)?.name;
-  return typeof historyChip === "string" && historyChip.trim() ? historyChip.trim() : null;
+  const chip = history.chips?.find((item) => item.event === eventId)?.name;
+  return typeof chip === "string" && chip.trim() ? chip.trim() : null;
 }
 
-function requestIssue(entry: ProviderEntryContext, roundId: number, error: unknown): ProviderValidationIssue {
-  const fplError = error instanceof FplRequestError ? error : null;
+function fetchIssue(entry: ProviderEntryContext, eventId: number, error: unknown): ProviderValidationIssue {
+  const requestError = error instanceof FplRequestError ? error : null;
   return {
     provider_entry_id: entry.provider_entry_id,
-    external_round_id: roundId,
+    external_round_id: eventId,
     stage: "fetch",
-    error_code: fplError?.status === 404 ? "fpl_entry_or_round_not_found" : "fpl_request_failed",
+    error_code: requestError?.status === 404 ? "fpl_entry_or_round_not_found" : "fpl_request_failed",
     message: error instanceof Error ? error.message : "Unable to retrieve FPL data.",
-    retriable: fplError?.retriable ?? true,
+    retriable: requestError?.retriable ?? true,
     details: {
-      endpoint: fplError?.endpoint ?? null,
-      http_status: fplError?.status ?? null,
+      endpoint: requestError?.endpoint ?? null,
+      http_status: requestError?.status ?? null,
       read_only: true,
     },
   };
+}
+
+async function fetchEntry(
+  baseUrl: string,
+  entry: ProviderEntryContext,
+  eventId: number,
+  timeoutSeconds: number,
+): Promise<EntryFetchResult> {
+  if (!/^\d+$/.test(entry.provider_entry_id)) {
+    return {
+      ok: false,
+      entry,
+      error: new FplRequestError("The FPL Entry ID must contain digits only.", "entry", null, false),
+    };
+  }
+
+  try {
+    const entryId = encodeURIComponent(entry.provider_entry_id);
+    const [history, picks] = await Promise.all([
+      fetchJson<FplHistory>(baseUrl, `/entry/${entryId}/history/`, timeoutSeconds),
+      fetchJson<FplPicks>(baseUrl, `/entry/${entryId}/event/${eventId}/picks/`, timeoutSeconds),
+    ]);
+    return { ok: true, entry, history, picks };
+  } catch (error) {
+    return { ok: false, entry, error };
+  }
 }
 
 export async function testApprovedFplConnection(input?: {
@@ -239,9 +256,8 @@ export async function testApprovedFplConnection(input?: {
 }): Promise<ApprovedFplHealth> {
   const baseUrl = resolveBaseUrl(input?.baseUrl);
   const timeoutSeconds = Math.min(120, Math.max(5, input?.timeoutSeconds ?? 30));
-  const bootstrap = await fetchFplJson<FplBootstrap>(baseUrl, "/bootstrap-static/", timeoutSeconds);
+  const bootstrap = await fetchJson<FplBootstrap>(baseUrl, "/bootstrap-static/", timeoutSeconds);
   const events = Array.isArray(bootstrap.events) ? bootstrap.events : [];
-
   if (!events.length) throw new Error("FPL bootstrap data did not contain any Gameweeks.");
 
   return {
@@ -249,7 +265,7 @@ export async function testApprovedFplConnection(input?: {
     baseUrl,
     checkedAt: new Date().toISOString(),
     eventCount: events.length,
-    totalPlayers: safeInteger(bootstrap.total_players),
+    totalPlayers: integer(bootstrap.total_players),
     currentEvent: events.find((event) => event.is_current)?.id ?? null,
     nextEvent: events.find((event) => event.is_next)?.id ?? null,
     allowedEndpoints: READ_ONLY_ENDPOINTS,
@@ -260,12 +276,13 @@ export class ApprovedFplProvider implements FantasyDataProvider<ApprovedFplProvi
   readonly kind = "approved_fpl" as const;
 
   async prepare(input: ApprovedFplProviderInput): Promise<PreparedProviderBatch> {
+    if (!input.entries.length) throw new Error("No fantasy entries were supplied to the FPL provider.");
+
     const baseUrl = resolveBaseUrl(input.baseUrl);
     const timeoutSeconds = Math.min(120, Math.max(5, input.timeoutSeconds ?? 30));
     const concurrency = Math.min(5, Math.max(1, input.concurrency ?? 3));
     const eventId = input.round.external_round_id;
-
-    const bootstrap = await fetchFplJson<FplBootstrap>(baseUrl, "/bootstrap-static/", timeoutSeconds);
+    const bootstrap = await fetchJson<FplBootstrap>(baseUrl, "/bootstrap-static/", timeoutSeconds);
     const events = Array.isArray(bootstrap.events) ? bootstrap.events : [];
     const event = events.find((item) => item.id === eventId);
     if (!event) throw new Error(`FPL bootstrap data does not contain Gameweek ${eventId}.`);
@@ -274,82 +291,68 @@ export class ApprovedFplProvider implements FantasyDataProvider<ApprovedFplProvi
     const issues: ProviderValidationIssue[] = [];
     const rawEntries: Array<Record<string, unknown>> = [];
 
-    const results = await mapWithConcurrency(input.entries, concurrency, async (entry) => {
-      if (!/^\d+$/.test(entry.provider_entry_id)) {
-        return {
-          entry,
-          error: new FplRequestError("The FPL Entry ID must contain digits only.", "entry", null, false),
-        };
-      }
+    for (let start = 0; start < input.entries.length; start += concurrency) {
+      const chunk = input.entries.slice(start, start + concurrency);
+      const results = await Promise.all(
+        chunk.map((entry) => fetchEntry(baseUrl, entry, eventId, timeoutSeconds)),
+      );
 
-      try {
-        const encodedEntryId = encodeURIComponent(entry.provider_entry_id);
-        const [history, picks] = await Promise.all([
-          fetchFplJson<FplHistory>(baseUrl, `/entry/${encodedEntryId}/history/`, timeoutSeconds),
-          fetchFplJson<FplPicks>(baseUrl, `/entry/${encodedEntryId}/event/${eventId}/picks/`, timeoutSeconds),
-        ]);
-        return { entry, history, picks, error: null };
-      } catch (error) {
-        return { entry, error };
-      }
-    });
+      for (const result of results) {
+        if (!result.ok) {
+          issues.push(fetchIssue(result.entry, eventId, result.error));
+          continue;
+        }
 
-    for (const result of results) {
-      if (result.error || !("history" in result) || !("picks" in result)) {
-        issues.push(requestIssue(result.entry, eventId, result.error));
-        continue;
-      }
+        const historyRows = Array.isArray(result.history.current) ? result.history.current : [];
+        const historyRow = historyRows.find((row) => row.event === eventId) ?? result.picks.entry_history;
+        if (!historyRow || historyRow.event !== eventId) {
+          issues.push({
+            provider_entry_id: result.entry.provider_entry_id,
+            external_round_id: eventId,
+            stage: "parse",
+            error_code: "fpl_event_history_missing",
+            message: `FPL did not return a Gameweek ${eventId} history row for this entry.`,
+            retriable: true,
+            details: { read_only: true },
+          });
+          continue;
+        }
 
-      const historyRows = Array.isArray(result.history.current) ? result.history.current : [];
-      const historyRow = historyRows.find((row) => row.event === eventId) ?? result.picks.entry_history;
-      if (!historyRow || historyRow.event !== eventId) {
-        issues.push({
+        records.push({
           provider_entry_id: result.entry.provider_entry_id,
           external_round_id: eventId,
-          stage: "parse",
-          error_code: "fpl_event_history_missing",
-          message: `FPL did not return a Gameweek ${eventId} history row for this entry.`,
-          retriable: true,
-          details: { read_only: true },
+          manager_name: result.entry.manager_name,
+          team_name: result.entry.team_name,
+          reported_points: integer(historyRow.points),
+          total_points: integer(historyRow.total_points),
+          transfer_cost: integer(historyRow.event_transfers_cost, 0) ?? 0,
+          chip_used: chipForEvent(result.history, result.picks, eventId),
+          round_rank: integer(historyRow.rank),
+          overall_rank: integer(historyRow.overall_rank),
+          is_provisional: !(event.finished === true && event.data_checked === true),
+          raw_record: {
+            provider: "approved_fpl",
+            read_only: true,
+            event: eventId,
+            entry_history: historyRow,
+            active_chip: result.picks.active_chip ?? null,
+            automatic_subs: result.picks.automatic_subs ?? [],
+            picks: result.picks.picks ?? [],
+          },
         });
-        continue;
-      }
 
-      const record: ProviderRecordInput = {
-        provider_entry_id: result.entry.provider_entry_id,
-        external_round_id: eventId,
-        manager_name: result.entry.manager_name,
-        team_name: result.entry.team_name,
-        reported_points: safeInteger(historyRow.points),
-        total_points: safeInteger(historyRow.total_points),
-        transfer_cost: safeInteger(historyRow.event_transfers_cost, 0) ?? 0,
-        chip_used: getChip(result.history, result.picks, eventId),
-        round_rank: safeInteger(historyRow.rank),
-        overall_rank: safeInteger(historyRow.overall_rank),
-        is_provisional: !(event.finished === true && event.data_checked === true),
-        raw_record: {
-          provider: "approved_fpl",
-          read_only: true,
-          event: eventId,
+        rawEntries.push({
+          provider_entry_id: result.entry.provider_entry_id,
           entry_history: historyRow,
           active_chip: result.picks.active_chip ?? null,
           automatic_subs: result.picks.automatic_subs ?? [],
           picks: result.picks.picks ?? [],
-        },
-      };
-      records.push(record);
-      rawEntries.push({
-        provider_entry_id: result.entry.provider_entry_id,
-        entry_history: historyRow,
-        active_chip: result.picks.active_chip ?? null,
-        automatic_subs: result.picks.automatic_subs ?? [],
-        picks: result.picks.picks ?? [],
-      });
+        });
+      }
     }
 
     if (!records.length) {
-      const firstIssue = issues[0]?.message ?? "FPL returned no usable score records.";
-      throw new Error(firstIssue);
+      throw new Error(issues[0]?.message ?? "FPL returned no usable score records.");
     }
 
     return {
