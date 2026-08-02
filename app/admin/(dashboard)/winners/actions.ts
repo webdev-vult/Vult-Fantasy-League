@@ -168,6 +168,7 @@ export async function replaceWinnerCandidateAction(formData: FormData) {
   const admin = await requireAdminRole(GENERATION_ROLES);
   const candidateId = requiredText(formData, "candidate_id", "Winner candidate");
   const seasonId = text(formData, "competition_season_id") || undefined;
+  let replacementCandidateId = "";
 
   try {
     const db = createAdminSupabaseClient() as any;
@@ -177,14 +178,8 @@ export async function replaceWinnerCandidateAction(formData: FormData) {
       p_requested_by: admin.id,
     });
     if (error) throw new Error(error.message);
-
-    refreshWinners(candidateId);
-    redirectWithMessage(
-      "success",
-      "Replacement candidate generated successfully.",
-      seasonId,
-      String(data),
-    );
+    if (!data) throw new Error("The replacement workflow did not return a candidate.");
+    replacementCandidateId = String(data);
   } catch (error) {
     redirectWithMessage(
       "error",
@@ -193,4 +188,13 @@ export async function replaceWinnerCandidateAction(formData: FormData) {
       candidateId,
     );
   }
+
+  refreshWinners(candidateId);
+  refreshWinners(replacementCandidateId);
+  redirectWithMessage(
+    "success",
+    "Replacement candidate generated successfully.",
+    seasonId,
+    replacementCandidateId,
+  );
 }
