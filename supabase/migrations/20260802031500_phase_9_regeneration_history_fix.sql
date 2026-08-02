@@ -21,7 +21,7 @@ set search_path = ''
 as $$
 declare
   v_previous_statuses jsonb := '{}'::jsonb;
-  v_started_at timestamptz := clock_timestamp();
+  v_started_at timestamptz := now();
   v_run_id uuid;
 begin
   select coalesce(jsonb_object_agg(wc.id::text, wc.status), '{}'::jsonb)
