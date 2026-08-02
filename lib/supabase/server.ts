@@ -3,7 +3,7 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import type { Database } from "@/types/database-phase8";
+import type { Database } from "@/types/database-phase9";
 
 function getSupabasePublicConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
