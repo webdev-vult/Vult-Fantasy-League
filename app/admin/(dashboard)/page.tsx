@@ -22,11 +22,20 @@ export default async function AdminOverviewPage() {
     supabase
       .from("winner_candidates")
       .select("id", { count: "exact", head: true })
-      .in("status", ["provisional", "under_review"]),
+      .in("status", ["provisional", "under_review", "competition_approved", "compliance_approved"]),
     supabase
       .from("prize_payments")
       .select("id", { count: "exact", head: true })
-      .in("status", ["pending", "approved", "processing"]),
+      .in("status", [
+        "destination_pending",
+        "finance_review",
+        "approved",
+        "processing",
+        "failed",
+        "reversal_requested",
+        "reversal_approved",
+        "reversal_processing",
+      ]),
     supabase
       .from("competition_seasons")
       .select("name, status, data_provider, registration_opens_at, registration_closes_at")
@@ -39,7 +48,7 @@ export default async function AdminOverviewPage() {
     { label: "Participants", value: formatNumber(participantsResult.count), note: "Permanent profiles" },
     { label: "Registrations", value: formatNumber(registrationsResult.count), note: "Across all seasons" },
     { label: "Winner reviews", value: formatNumber(pendingWinnersResult.count), note: "Awaiting a decision" },
-    { label: "Pending payments", value: formatNumber(pendingPaymentsResult.count), note: "Finance workflow" },
+    { label: "Active settlements", value: formatNumber(pendingPaymentsResult.count), note: "Finance and reversal workflow" },
   ];
 
   const competitionSeason = competitionSeasonResult.data;
@@ -55,7 +64,7 @@ export default async function AdminOverviewPage() {
             Welcome, {admin.full_name.split(" ")[0]}
           </h1>
           <p className="mt-3 max-w-2xl leading-7 text-[var(--muted)]">
-            Monitor registration, competition operations, winner approvals and prize payments from this workspace.
+            Monitor registration, competition operations, winner approvals and controlled prize settlements from this workspace.
           </p>
         </div>
         <span className="w-fit rounded-full border border-green-200 bg-green-50 px-4 py-2 text-xs font-black text-green-700">
@@ -122,24 +131,32 @@ export default async function AdminOverviewPage() {
             </div>
           </div>
 
-          <Link
-            href="/admin/competitions"
-            className="mt-6 inline-flex rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-950/15"
-          >
-            Manage competitions and seasons
-          </Link>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/admin/competitions"
+              className="inline-flex rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-950/15"
+            >
+              Manage competitions
+            </Link>
+            <Link
+              href="/admin/payments"
+              className="inline-flex rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-black text-[var(--brand)]"
+            >
+              Open payment operations
+            </Link>
+          </div>
         </article>
 
         <article className="rounded-3xl bg-[var(--brand-strong)] p-6 text-white shadow-xl shadow-blue-950/15 sm:p-8">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">
-            Next implementation
+            Controlled settlement
           </p>
-          <h2 className="mt-3 text-2xl font-black">Participant registration and verification</h2>
+          <h2 className="mt-3 text-2xl font-black">Winner to payment workflow</h2>
           <p className="mt-4 leading-7 text-blue-100">
-            The next module will capture participants, seasonal registrations, Vult details and fantasy entry IDs, then move each record through verification and approval.
+            Confirmed winners move through destination verification, finance approval, payment attempts, reconciliation and dual-control reversals.
           </p>
           <div className="mt-7 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-semibold text-blue-100">
-            Competition and season settings can now be controlled from the admin portal.
+            Automatic external payouts remain disabled until an approved Vult API connector is available.
           </div>
         </article>
       </section>
