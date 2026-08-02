@@ -24,8 +24,8 @@ This document is the permanent delivery tracker for the Vult Fantasy Competition
 | 7 | Fantasy data-provider integration | Completed |
 | 8 | Scores and leaderboards | Completed |
 | 9 | Winner calculation and approval | Completed |
-| 10 | Prize and payment management | In Review |
-| 11 | Notifications, announcements and disputes | Pending |
+| 10 | Prize and payment management | Completed |
+| 11 | Notifications, announcements and disputes | In Review |
 | 12 | Reports, analytics and audit | Pending |
 | 13 | Testing, launch and annual rollover | Pending |
 | 14 | Advanced and future features | Pending |
@@ -102,7 +102,22 @@ Validated provider-score promotion, provisional and final Gameweek scores, trans
 
 ## Phase 11 — Notifications, announcements and disputes
 
-Email, WhatsApp, in-platform notifications, announcements, participant disputes, evidence, assignment, escalation, decisions, and communication history.
+- Publish public, participant and administrator announcements
+- Support draft, scheduled, published and archived announcement states
+- Apply publication dates, expiry dates, pinned status and audience controls
+- Maintain editable notification templates and channel preferences
+- Queue email, WhatsApp, in-platform and manual communications
+- Treat email and WhatsApp as manual delivery records until an approved provider is configured
+- Record successful, failed, cancelled and skipped delivery attempts
+- Let participants submit disputes using their registration reference and registered contact
+- Issue short-lived case-access tokens without exposing participant records
+- Let participants view case messages, evidence and decisions and add replies
+- Support registration, score, eligibility, winner, payment and general cases
+- Assign cases, set priority, monitor deadlines and escalate cases
+- Separate participant-visible messages from internal notes
+- Preserve immutable evidence, communication and status history
+- Route final decisions to Compliance, Competition, Finance or Support according to category
+- Require Support or Super Admin authority to close decided cases
 
 ## Phase 12 — Reports, analytics and audit
 
@@ -128,6 +143,7 @@ agent/phase-7-fantasy-provider
 agent/phase-8-scores-leaderboards
 agent/phase-9-winner-approval
 agent/phase-10-prize-payments
+agent/phase-11-communications-disputes
 ```
 
 ## Completion rule
