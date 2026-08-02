@@ -6,6 +6,8 @@ const links = [
   { href: "/rules", label: "Rules" },
   { href: "/prizes", label: "Prizes" },
   { href: "/leaderboards", label: "Leaderboards" },
+  { href: "/announcements", label: "Announcements" },
+  { href: "/support", label: "Support" },
 ];
 
 export function SiteHeader({ registrationOpen = false }: { registrationOpen?: boolean }) {
