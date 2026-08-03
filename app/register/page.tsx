@@ -8,6 +8,8 @@ import {
   getPublishedRules,
 } from "@/lib/public/competition";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Register",
   description: "Register for the Vult EPL Fantasy League.",
