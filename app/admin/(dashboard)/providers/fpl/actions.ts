@@ -62,6 +62,7 @@ type FplContext = {
     name: string;
     status: string;
     data_provider: string;
+    external_league_id: string | null;
   };
   settings: {
     provider: string;
@@ -73,11 +74,21 @@ type FplContext = {
   rounds: ProviderRoundContext[];
 };
 
+function configuredLeagueId(context: FplContext) {
+  const configured = context.season.external_league_id ?? context.settings.config?.league_numeric_id;
+  if (configured === null || configured === undefined || String(configured).trim() === "") return null;
+  const value = String(configured).trim();
+  if (!/^\d+$/.test(value) || Number.parseInt(value, 10) < 1) {
+    throw new Error("The configured FPL classic league ID must be a positive integer.");
+  }
+  return value;
+}
+
 async function loadContext(db: any, seasonId: string): Promise<FplContext> {
   const [seasonResult, settingsResult, entriesResult, roundsResult] = await Promise.all([
     db
       .from("competition_seasons")
-      .select("id, name, status, data_provider")
+      .select("id, name, status, data_provider, external_league_id")
       .eq("id", seasonId)
       .single(),
     db
@@ -135,11 +146,27 @@ export async function enableReadOnlyFplAction(formData: FormData) {
   try {
     const supabase = await createServerSupabaseClient();
     const db = supabase as any;
-    const { data: existing } = await db
-      .from("fantasy_provider_settings")
-      .select("config")
-      .eq("competition_season_id", seasonId)
-      .maybeSingle();
+    const [{ data: existing }, { data: season, error: seasonLookupError }] = await Promise.all([
+      db
+        .from("fantasy_provider_settings")
+        .select("config")
+        .eq("competition_season_id", seasonId)
+        .maybeSingle(),
+      db
+        .from("competition_seasons")
+        .select("external_league_id")
+        .eq("id", seasonId)
+        .single(),
+    ]);
+    if (seasonLookupError || !season) {
+      throw new Error(seasonLookupError?.message ?? "Competition season not found.");
+    }
+
+    const leagueId = season.external_league_id
+      ? String(season.external_league_id)
+      : existing?.config?.league_numeric_id
+        ? String(existing.config.league_numeric_id)
+        : null;
 
     const { error: seasonError } = await db
       .from("competition_seasons")
@@ -165,12 +192,16 @@ export async function enableReadOnlyFplAction(formData: FormData) {
           contract_version: "2026.27.1",
           max_concurrency: 3,
           authenticated_endpoints_enabled: false,
+          league_numeric_id: leagueId,
+          league_standings_enabled: Boolean(leagueId),
+          require_official_league_membership: Boolean(leagueId),
           allowed_endpoints: [
             "/bootstrap-static/",
             "/event-status/",
             "/entry/{entryId}/",
             "/entry/{entryId}/history/",
             "/entry/{entryId}/event/{eventId}/picks/",
+            "/leagues-classic/{leagueId}/standings/",
           ],
         },
       },
@@ -189,6 +220,8 @@ export async function enableReadOnlyFplAction(formData: FormData) {
         read_only: true,
         contract_version: "2026.27.1",
         authenticated_endpoints_enabled: false,
+        league_numeric_id: leagueId,
+        require_official_league_membership: Boolean(leagueId),
       },
     });
   } catch (error) {
@@ -207,9 +240,11 @@ export async function testReadOnlyFplAction(formData: FormData) {
     const supabase = await createServerSupabaseClient();
     const db = supabase as any;
     const context = await loadContext(db, seasonId);
+    const leagueId = configuredLeagueId(context);
     const health = await testApprovedFplConnection({
       timeoutSeconds: context.settings.request_timeout_seconds,
       baseUrl: FPL_BASE_URL,
+      leagueId,
     });
 
     await db.from("audit_logs").insert({
@@ -221,9 +256,12 @@ export async function testReadOnlyFplAction(formData: FormData) {
     });
 
     const current = health.currentEvent ? ` Current Gameweek: ${health.currentEvent}.` : "";
+    const league = health.league
+      ? ` Official league: ${health.league.name ?? health.league.id} (${health.league.id}).`
+      : " No numeric league ID is configured.";
     redirectToFpl(
       "success",
-      `FPL connection succeeded with ${health.eventCount} Gameweeks.${current}`,
+      `FPL connection succeeded with ${health.eventCount} Gameweeks.${current}${league}`,
       seasonId,
     );
   } catch (error) {
@@ -247,6 +285,11 @@ export async function runReadOnlyFplSyncAction(formData: FormData) {
     }
     if (!context.settings.is_enabled) throw new Error("FPL provider ingestion is disabled for this season.");
 
+    const leagueId = configuredLeagueId(context);
+    if (!leagueId) {
+      throw new Error("Configure the numeric official FPL league ID before retrieving scores.");
+    }
+
     const round = context.rounds.find((item) => item.id === roundId);
     if (!round) throw new Error("The selected Gameweek was not found.");
 
@@ -262,6 +305,8 @@ export async function runReadOnlyFplSyncAction(formData: FormData) {
       timeoutSeconds: context.settings.request_timeout_seconds,
       concurrency: 3,
       baseUrl: FPL_BASE_URL,
+      leagueId,
+      requireLeagueMembership: true,
     });
 
     const failedRecords: ProviderRecordInput[] = (batch.issues ?? []).map((issue) => {
@@ -281,6 +326,7 @@ export async function runReadOnlyFplSyncAction(formData: FormData) {
         raw_record: {
           provider: "approved_fpl",
           read_only: true,
+          official_league_id: leagueId,
           fetch_error: issue.message,
           error_code: issue.error_code,
           details: issue.details,
@@ -311,7 +357,7 @@ export async function runReadOnlyFplSyncAction(formData: FormData) {
     refresh();
     redirectToFpl(
       "success",
-      `FPL Gameweek ${round.external_round_id} data was retrieved, validated and staged.`,
+      `FPL Gameweek ${round.external_round_id} data was reconciled with official league ${leagueId}, validated and staged.`,
       seasonId,
       String(runId),
     );

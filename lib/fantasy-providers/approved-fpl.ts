@@ -10,6 +10,7 @@ import type {
 const DEFAULT_FPL_BASE_URL = "https://fantasy.premierleague.com/api";
 const ALLOWED_FPL_HOST = "fantasy.premierleague.com";
 const MAX_RESPONSE_BYTES = 12 * 1024 * 1024;
+const MAX_LEAGUE_PAGES = 500;
 
 const READ_ONLY_ENDPOINTS = [
   "/bootstrap-static/",
@@ -17,6 +18,7 @@ const READ_ONLY_ENDPOINTS = [
   "/entry/{entryId}/",
   "/entry/{entryId}/history/",
   "/entry/{entryId}/event/{eventId}/picks/",
+  "/leagues-classic/{leagueId}/standings/",
 ] as const;
 
 type FplEvent = {
@@ -60,6 +62,44 @@ type FplPicks = {
   [key: string]: unknown;
 };
 
+type FplLeagueStanding = {
+  entry?: number;
+  entry_name?: string;
+  player_name?: string;
+  player_first_name?: string;
+  player_last_name?: string;
+  rank?: number | null;
+  last_rank?: number | null;
+  event_total?: number | null;
+  total?: number | null;
+  [key: string]: unknown;
+};
+
+type FplLeaguePage = {
+  has_next?: boolean;
+  page?: number;
+  results?: FplLeagueStanding[];
+  [key: string]: unknown;
+};
+
+type FplLeagueStandingsResponse = {
+  league?: {
+    id?: number;
+    name?: string;
+    [key: string]: unknown;
+  };
+  standings?: FplLeaguePage;
+  new_entries?: FplLeaguePage;
+  [key: string]: unknown;
+};
+
+type FplLeagueSnapshot = {
+  id: number;
+  name: string | null;
+  standings: FplLeagueStanding[];
+  pagesFetched: number;
+};
+
 type EntryFetchResult =
   | {
       ok: true;
@@ -79,6 +119,8 @@ export type ApprovedFplProviderInput = {
   timeoutSeconds?: number;
   concurrency?: number;
   baseUrl?: string;
+  leagueId?: string | number | null;
+  requireLeagueMembership?: boolean;
 };
 
 export type ApprovedFplHealth = {
@@ -90,6 +132,14 @@ export type ApprovedFplHealth = {
   currentEvent: number | null;
   nextEvent: number | null;
   allowedEndpoints: readonly string[];
+  league: null | {
+    id: number;
+    name: string | null;
+    standingsPageEntries: number;
+    newEntriesPageEntries: number;
+    hasMoreStandings: boolean;
+    hasMoreNewEntries: boolean;
+  };
 };
 
 class FplRequestError extends Error {
@@ -119,6 +169,15 @@ function resolveBaseUrl(input?: string) {
 
 function integer(value: unknown, fallback: number | null = null) {
   return typeof value === "number" && Number.isInteger(value) ? value : fallback;
+}
+
+function normalizeLeagueId(value: string | number | null | undefined) {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
+  const leagueId = Number.parseInt(String(value), 10);
+  if (!Number.isInteger(leagueId) || leagueId < 1 || String(leagueId) !== String(value).trim()) {
+    throw new Error("The FPL classic league ID must be a positive integer.");
+  }
+  return leagueId;
 }
 
 function sleep(milliseconds: number) {
@@ -201,6 +260,88 @@ async function fetchJson<T>(baseUrl: string, endpoint: string, timeoutSeconds: n
   throw lastError instanceof Error ? lastError : new Error("FPL request failed.");
 }
 
+function leagueEndpoint(leagueId: number, standingsPage: number, newEntriesPage: number) {
+  const params = new URLSearchParams({
+    page_standings: String(standingsPage),
+    page_new_entries: String(newEntriesPage),
+  });
+  return `/leagues-classic/${leagueId}/standings/?${params.toString()}`;
+}
+
+function leagueRows(page: FplLeaguePage | undefined) {
+  return Array.isArray(page?.results) ? page.results : [];
+}
+
+function addLeagueRows(target: Map<string, FplLeagueStanding>, rows: FplLeagueStanding[]) {
+  for (const row of rows) {
+    const entryId = integer(row.entry);
+    if (entryId) target.set(String(entryId), row);
+  }
+}
+
+async function fetchLeagueFirstPage(baseUrl: string, leagueId: number, timeoutSeconds: number) {
+  const endpoint = leagueEndpoint(leagueId, 1, 1);
+  const response = await fetchJson<FplLeagueStandingsResponse>(baseUrl, endpoint, timeoutSeconds);
+  const returnedLeagueId = integer(response.league?.id);
+  if (returnedLeagueId !== null && returnedLeagueId !== leagueId) {
+    throw new Error(`FPL returned league ${returnedLeagueId} instead of league ${leagueId}.`);
+  }
+  return response;
+}
+
+async function fetchAllLeagueStandings(
+  baseUrl: string,
+  leagueId: number,
+  timeoutSeconds: number,
+): Promise<FplLeagueSnapshot> {
+  const firstPage = await fetchLeagueFirstPage(baseUrl, leagueId, timeoutSeconds);
+  const rows = new Map<string, FplLeagueStanding>();
+  addLeagueRows(rows, leagueRows(firstPage.standings));
+  addLeagueRows(rows, leagueRows(firstPage.new_entries));
+
+  let pagesFetched = 1;
+  let standingsPage = 1;
+  let hasNextStandings = firstPage.standings?.has_next === true;
+  while (hasNextStandings) {
+    standingsPage += 1;
+    if (standingsPage > MAX_LEAGUE_PAGES) {
+      throw new Error(`FPL league ${leagueId} exceeded the ${MAX_LEAGUE_PAGES}-page safety limit.`);
+    }
+    const page = await fetchJson<FplLeagueStandingsResponse>(
+      baseUrl,
+      leagueEndpoint(leagueId, standingsPage, 1),
+      timeoutSeconds,
+    );
+    pagesFetched += 1;
+    addLeagueRows(rows, leagueRows(page.standings));
+    hasNextStandings = page.standings?.has_next === true;
+  }
+
+  let newEntriesPage = 1;
+  let hasNextNewEntries = firstPage.new_entries?.has_next === true;
+  while (hasNextNewEntries) {
+    newEntriesPage += 1;
+    if (newEntriesPage > MAX_LEAGUE_PAGES) {
+      throw new Error(`FPL league ${leagueId} new entries exceeded the ${MAX_LEAGUE_PAGES}-page safety limit.`);
+    }
+    const page = await fetchJson<FplLeagueStandingsResponse>(
+      baseUrl,
+      leagueEndpoint(leagueId, 1, newEntriesPage),
+      timeoutSeconds,
+    );
+    pagesFetched += 1;
+    addLeagueRows(rows, leagueRows(page.new_entries));
+    hasNextNewEntries = page.new_entries?.has_next === true;
+  }
+
+  return {
+    id: leagueId,
+    name: typeof firstPage.league?.name === "string" ? firstPage.league.name : null,
+    standings: [...rows.values()],
+    pagesFetched,
+  };
+}
+
 function chipForEvent(history: FplHistory, picks: FplPicks, eventId: number) {
   if (typeof picks.active_chip === "string" && picks.active_chip.trim()) return picks.active_chip.trim();
   const chip = history.chips?.find((item) => item.event === eventId)?.name;
@@ -219,6 +360,22 @@ function fetchIssue(entry: ProviderEntryContext, eventId: number, error: unknown
     details: {
       endpoint: requestError?.endpoint ?? null,
       http_status: requestError?.status ?? null,
+      read_only: true,
+    },
+  };
+}
+
+function membershipIssue(entry: ProviderEntryContext, eventId: number, leagueId: number): ProviderValidationIssue {
+  return {
+    provider_entry_id: entry.provider_entry_id,
+    external_round_id: eventId,
+    stage: "validation",
+    error_code: "fpl_entry_not_in_official_league",
+    message: `FPL Entry ID ${entry.provider_entry_id} was not found in official league ${leagueId}.`,
+    retriable: false,
+    details: {
+      league_id: leagueId,
+      required_membership: true,
       read_only: true,
     },
   };
@@ -253,12 +410,16 @@ async function fetchEntry(
 export async function testApprovedFplConnection(input?: {
   timeoutSeconds?: number;
   baseUrl?: string;
+  leagueId?: string | number | null;
 }): Promise<ApprovedFplHealth> {
   const baseUrl = resolveBaseUrl(input?.baseUrl);
   const timeoutSeconds = Math.min(120, Math.max(5, input?.timeoutSeconds ?? 30));
   const bootstrap = await fetchJson<FplBootstrap>(baseUrl, "/bootstrap-static/", timeoutSeconds);
   const events = Array.isArray(bootstrap.events) ? bootstrap.events : [];
   if (!events.length) throw new Error("FPL bootstrap data did not contain any Gameweeks.");
+
+  const leagueId = normalizeLeagueId(input?.leagueId);
+  const leaguePage = leagueId ? await fetchLeagueFirstPage(baseUrl, leagueId, timeoutSeconds) : null;
 
   return {
     ok: true,
@@ -269,6 +430,16 @@ export async function testApprovedFplConnection(input?: {
     currentEvent: events.find((event) => event.is_current)?.id ?? null,
     nextEvent: events.find((event) => event.is_next)?.id ?? null,
     allowedEndpoints: READ_ONLY_ENDPOINTS,
+    league: leagueId && leaguePage
+      ? {
+          id: leagueId,
+          name: typeof leaguePage.league?.name === "string" ? leaguePage.league.name : null,
+          standingsPageEntries: leagueRows(leaguePage.standings).length,
+          newEntriesPageEntries: leagueRows(leaguePage.new_entries).length,
+          hasMoreStandings: leaguePage.standings?.has_next === true,
+          hasMoreNewEntries: leaguePage.new_entries?.has_next === true,
+        }
+      : null,
   };
 }
 
@@ -282,17 +453,39 @@ export class ApprovedFplProvider implements FantasyDataProvider<ApprovedFplProvi
     const timeoutSeconds = Math.min(120, Math.max(5, input.timeoutSeconds ?? 30));
     const concurrency = Math.min(5, Math.max(1, input.concurrency ?? 3));
     const eventId = input.round.external_round_id;
+    const leagueId = normalizeLeagueId(input.leagueId);
+    const requireLeagueMembership = input.requireLeagueMembership ?? leagueId !== null;
+    if (requireLeagueMembership && !leagueId) {
+      throw new Error("A numeric FPL league ID is required before official-league membership can be enforced.");
+    }
+
     const bootstrap = await fetchJson<FplBootstrap>(baseUrl, "/bootstrap-static/", timeoutSeconds);
     const events = Array.isArray(bootstrap.events) ? bootstrap.events : [];
     const event = events.find((item) => item.id === eventId);
     if (!event) throw new Error(`FPL bootstrap data does not contain Gameweek ${eventId}.`);
 
+    const leagueSnapshot = leagueId
+      ? await fetchAllLeagueStandings(baseUrl, leagueId, timeoutSeconds)
+      : null;
+    const leagueMemberMap = new Map(
+      (leagueSnapshot?.standings ?? [])
+        .map((row) => [String(integer(row.entry) ?? ""), row] as const)
+        .filter(([entryId]) => entryId.length > 0),
+    );
+
     const records: ProviderRecordInput[] = [];
     const issues: ProviderValidationIssue[] = [];
     const rawEntries: Array<Record<string, unknown>> = [];
 
-    for (let start = 0; start < input.entries.length; start += concurrency) {
-      const chunk = input.entries.slice(start, start + concurrency);
+    const eligibleEntries = input.entries.filter((entry) => {
+      if (!requireLeagueMembership || !leagueId) return true;
+      if (leagueMemberMap.has(entry.provider_entry_id)) return true;
+      issues.push(membershipIssue(entry, eventId, leagueId));
+      return false;
+    });
+
+    for (let start = 0; start < eligibleEntries.length; start += concurrency) {
+      const chunk = eligibleEntries.slice(start, start + concurrency);
       const results = await Promise.all(
         chunk.map((entry) => fetchEntry(baseUrl, entry, eventId, timeoutSeconds)),
       );
@@ -318,13 +511,19 @@ export class ApprovedFplProvider implements FantasyDataProvider<ApprovedFplProvi
           continue;
         }
 
+        const leagueStanding = leagueMemberMap.get(result.entry.provider_entry_id) ?? null;
+        const historyPoints = integer(historyRow.points);
+        const historyTotal = integer(historyRow.total_points);
+        const standingEventPoints = integer(leagueStanding?.event_total);
+        const standingTotal = integer(leagueStanding?.total);
+
         records.push({
           provider_entry_id: result.entry.provider_entry_id,
           external_round_id: eventId,
           manager_name: result.entry.manager_name,
           team_name: result.entry.team_name,
-          reported_points: integer(historyRow.points),
-          total_points: integer(historyRow.total_points),
+          reported_points: historyPoints,
+          total_points: historyTotal,
           transfer_cost: integer(historyRow.event_transfers_cost, 0) ?? 0,
           chip_used: chipForEvent(result.history, result.picks, eventId),
           round_rank: integer(historyRow.rank),
@@ -334,6 +533,24 @@ export class ApprovedFplProvider implements FantasyDataProvider<ApprovedFplProvi
             provider: "approved_fpl",
             read_only: true,
             event: eventId,
+            official_league: leagueSnapshot
+              ? {
+                  id: leagueSnapshot.id,
+                  name: leagueSnapshot.name,
+                  membership_confirmed: leagueStanding !== null,
+                  standing: leagueStanding,
+                  reconciliation: {
+                    event_points_match:
+                      standingEventPoints === null || historyPoints === null
+                        ? null
+                        : standingEventPoints === historyPoints,
+                    total_points_match:
+                      standingTotal === null || historyTotal === null
+                        ? null
+                        : standingTotal === historyTotal,
+                  },
+                }
+              : null,
             entry_history: historyRow,
             active_chip: result.picks.active_chip ?? null,
             automatic_subs: result.picks.automatic_subs ?? [],
@@ -343,6 +560,7 @@ export class ApprovedFplProvider implements FantasyDataProvider<ApprovedFplProvi
 
         rawEntries.push({
           provider_entry_id: result.entry.provider_entry_id,
+          official_league_standing: leagueStanding,
           entry_history: historyRow,
           active_chip: result.picks.active_chip ?? null,
           automatic_subs: result.picks.automatic_subs ?? [],
@@ -359,12 +577,23 @@ export class ApprovedFplProvider implements FantasyDataProvider<ApprovedFplProvi
       records,
       issues,
       sourceLabel: `FPL Gameweek ${eventId} read-only sync`,
-      sourceEndpoint: `${baseUrl}/entry/{entryId}/history/ + /entry/{entryId}/event/${eventId}/picks/`,
+      sourceEndpoint: leagueId
+        ? `${baseUrl}/leagues-classic/${leagueId}/standings/ + /entry/{entryId}/history/ + /entry/{entryId}/event/${eventId}/picks/`
+        : `${baseUrl}/entry/{entryId}/history/ + /entry/{entryId}/event/${eventId}/picks/`,
       responseData: {
         provider: "approved_fpl",
         contract_version: "2026.27.1",
         read_only: true,
         fetched_at: new Date().toISOString(),
+        official_league: leagueSnapshot
+          ? {
+              id: leagueSnapshot.id,
+              name: leagueSnapshot.name,
+              member_count: leagueSnapshot.standings.length,
+              pages_fetched: leagueSnapshot.pagesFetched,
+              membership_required: requireLeagueMembership,
+            }
+          : null,
         event: {
           id: event.id,
           name: event.name ?? input.round.name,
