@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Register",
-  description: "Register for the Vult EPL Fantasy League.",
+  description: "Register for Vult EPL Fantasy 2026/27.",
 };
 
 export default async function RegisterPage() {
@@ -29,7 +29,7 @@ export default async function RegisterPage() {
           <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-200">Season registration</p>
           <h1 className="mt-4 text-3xl font-black tracking-[-0.04em]">{competition.name}</h1>
           <p className="mt-4 text-sm leading-7 text-blue-100">
-            Submit one seasonal entry using your personal information, Vult reference and official Fantasy Premier League Entry ID.
+            Register using your contact details and the exact Team name and Manager name shown in the official Vult FPL mini-league.
           </p>
 
           <dl className="mt-8 space-y-5 border-t border-white/10 pt-6 text-sm">
@@ -46,13 +46,17 @@ export default async function RegisterPage() {
               <dd className="mt-1 font-black">{rules?.minimum_age ?? 18} years</dd>
             </div>
             <div>
+              <dt className="text-blue-200">Official league code</dt>
+              <dd className="mt-1 font-black text-[var(--accent)]">ura0oj</dd>
+            </div>
+            <div>
               <dt className="text-blue-200">Submission status</dt>
               <dd className="mt-1 font-black text-[var(--accent)]">Pending verification after submission</dd>
             </div>
           </dl>
 
           <div className="mt-8 rounded-2xl bg-white/10 p-4 text-xs leading-6 text-blue-100">
-            Registration does not guarantee eligibility. Vult will verify the FPL entry, Vult account, duplicates and rule compliance before approval.
+            Registration does not guarantee eligibility. Vult will resolve your FPL Entry ID from league 538121 and verify your team, account eligibility, duplicates and rule compliance before approval.
           </div>
         </aside>
 
@@ -61,7 +65,6 @@ export default async function RegisterPage() {
             competitionSlug={competition.slug}
             registrationOpen={registrationOpen}
             minimumAge={rules?.minimum_age ?? 18}
-            requiresVultAccount={rules?.requires_vult_account ?? true}
           />
         </div>
       </section>
