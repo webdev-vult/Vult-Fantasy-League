@@ -52,7 +52,7 @@ export type PublicPrize = {
 const fallbackCompetition: PublicCompetition = {
   id: null,
   slug: PRIMARY_COMPETITION_SLUG,
-  name: "Vult EPL Fantasy League 2026/27",
+  name: "Vult EPL Fantasy 2026/27",
   status: "draft",
   registrationOpensAt: null,
   registrationClosesAt: null,
