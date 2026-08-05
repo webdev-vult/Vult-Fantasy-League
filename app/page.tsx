@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GameweekCountdown } from "@/components/public/gameweek-countdown";
 import { SiteFooter } from "@/components/public/site-footer";
 import { SiteHeader } from "@/components/public/site-header";
 import {
@@ -6,11 +7,16 @@ import {
   getPublicCompetition,
   humanizeStatus,
 } from "@/lib/public/competition";
+import { getPublicGameweekFixtures } from "@/lib/public/fpl-fixtures";
+
+export const dynamic = "force-dynamic";
+
+const GAMEWEEK_ONE_START = "2026-08-21T00:00:00Z";
 
 const features = [
   {
     title: "One verified seasonal entry",
-    description: "Register your personal profile, Vult reference and official FPL Entry ID for the active season.",
+    description: "Register with the exact Team and Manager names shown in the official Vult FPL mini-league.",
   },
   {
     title: "Transparent competition standings",
@@ -26,8 +32,23 @@ const features = [
   },
 ];
 
+function formatKickoff(value: string | null) {
+  if (!value) return "Time to be confirmed";
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Africa/Freetown",
+  }).format(new Date(value));
+}
+
 export default async function Home() {
   const competition = await getPublicCompetition();
+  const startTarget = competition.startsAt ?? GAMEWEEK_ONE_START;
+  const seasonStarted = Date.now() >= new Date(startTarget).getTime();
+  const fixtures = seasonStarted ? await getPublicGameweekFixtures(1) : [];
 
   return (
     <main className="min-h-screen bg-[#f4f6fb]">
@@ -56,14 +77,13 @@ export default async function Home() {
             </div>
           </div>
 
-          <aside className="rounded-[2rem] border border-white/10 bg-white/5 p-7 backdrop-blur sm:p-8">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-200">Current season</p>
-            <h2 className="mt-3 text-3xl font-black">2026/27</h2>
-            <dl className="mt-8 space-y-5">
-              <div className="rounded-2xl bg-white/5 p-4">
-                <dt className="text-xs font-bold text-blue-200">Registration opens</dt>
-                <dd className="mt-2 text-lg font-black">{formatPublicDate(competition.registrationOpensAt)}</dd>
-              </div>
+          <aside className="space-y-5 rounded-[2rem] border border-white/10 bg-white/5 p-7 backdrop-blur sm:p-8">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-200">Current season</p>
+              <h2 className="mt-3 text-3xl font-black">2026/27</h2>
+            </div>
+            <GameweekCountdown target={startTarget} />
+            <dl className="space-y-4">
               <div className="rounded-2xl bg-white/5 p-4">
                 <dt className="text-xs font-bold text-blue-200">Registration closes</dt>
                 <dd className="mt-2 text-lg font-black">{formatPublicDate(competition.registrationClosesAt)}</dd>
@@ -71,13 +91,50 @@ export default async function Home() {
               <div className="rounded-2xl bg-white/5 p-4">
                 <dt className="text-xs font-bold text-blue-200">Entry status</dt>
                 <dd className="mt-2 text-lg font-black text-[var(--accent)]">
-                  {competition.registrationOpen ? "Open" : "Not yet open"}
+                  {competition.registrationOpen ? "Open" : "Not open"}
                 </dd>
               </div>
             </dl>
           </aside>
         </div>
       </section>
+
+      {seasonStarted ? (
+        <section className="border-b border-[var(--border)] bg-white py-16">
+          <div className="mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--brand)]">Fixtures</p>
+                <h2 className="mt-3 text-4xl font-black tracking-[-0.045em] text-[var(--brand-strong)]">Gameweek 1</h2>
+              </div>
+              <p className="text-sm text-[var(--muted)]">Official fixture information from the FPL read-only provider.</p>
+            </div>
+
+            {fixtures.length ? (
+              <div className="mt-8 grid gap-4 md:grid-cols-2">
+                {fixtures.map((fixture) => (
+                  <article key={fixture.id} className="rounded-3xl border border-[var(--border)] bg-[#f7f9fd] p-5">
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--muted)]">{formatKickoff(fixture.kickoffTime)}</p>
+                    <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                      <p className="font-black text-[var(--brand-strong)]">{fixture.homeTeam}</p>
+                      <p className="rounded-xl bg-white px-3 py-2 text-sm font-black text-[var(--brand)]">
+                        {fixture.started || fixture.finished
+                          ? `${fixture.homeScore ?? 0} – ${fixture.awayScore ?? 0}`
+                          : "v"}
+                      </p>
+                      <p className="text-right font-black text-[var(--brand-strong)]">{fixture.awayTeam}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-8 rounded-3xl border border-dashed border-[var(--border)] bg-[#f7f9fd] p-8 text-center text-[var(--muted)]">
+                Gameweek fixtures are temporarily unavailable. They will appear automatically when the FPL provider returns them.
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       <section className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 lg:px-10 lg:py-20">
         <div className="max-w-3xl">
@@ -116,11 +173,11 @@ export default async function Home() {
         <div className="rounded-[2rem] bg-[var(--brand)] p-8 text-white sm:flex sm:items-center sm:justify-between sm:p-10">
           <div>
             <p className="text-sm font-bold text-blue-100">Before you register</p>
-            <h2 className="mt-2 text-3xl font-black">Read the published rules and prepare your FPL Entry ID.</h2>
+            <h2 className="mt-2 text-3xl font-black">Join the Vult mini-league and copy your exact Team and Manager names.</h2>
           </div>
           <div className="mt-6 flex flex-wrap gap-3 sm:mt-0 sm:justify-end">
             <Link href="/rules" className="rounded-xl bg-white px-5 py-3 text-sm font-black text-[var(--brand)]">Read rules</Link>
-            <Link href="/prizes" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-black text-white">View prizes</Link>
+            <a href="https://fantasy.premierleague.com/leagues/auto-join/ura0oj" target="_blank" rel="noreferrer" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-black text-white">Join Vult league</a>
           </div>
         </div>
       </section>
