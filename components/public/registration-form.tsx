@@ -15,9 +15,11 @@ const inputClass =
 export function RegistrationForm({
   competitionSlug,
   registrationOpen,
+  minimumAge,
 }: {
   competitionSlug: string;
   registrationOpen: boolean;
+  minimumAge: number;
 }) {
   const [state, formAction, pending] = useActionState(
     submitRegistrationAction,
@@ -86,17 +88,30 @@ export function RegistrationForm({
       <section className="border-t border-[var(--border)] pt-8">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--brand)]">Fantasy team</p>
         <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Match your official Vult league entry</h2>
-        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-          Enter the Team and Manager names exactly as they appear under New entries or Standings in the Vult FPL mini-league.
-        </p>
+        <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
+          Join the official Vult FPL league first, then enter the <strong>Team name</strong> and <strong>Manager name</strong> exactly as shown under New entries or Standings.
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <a
+              href="https://fantasy.premierleague.com/leagues/auto-join/ura0oj"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-black text-white"
+            >
+              Join Vult FPL league
+            </a>
+            <span className="text-xs font-black">League code: ura0oj</span>
+          </div>
+        </div>
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <label className="text-sm font-bold text-[var(--brand-strong)]">
             Team name <span className="text-red-600">*</span>
-            <input className={inputClass} name="fpl_team_name" required maxLength={120} disabled={disabled} placeholder="Aluta - Continua FC" />
+            <input className={inputClass} name="fpl_team_name" required minLength={2} maxLength={120} disabled={disabled} placeholder="Aluta - Continua FC" />
+            <span className="mt-2 block text-xs font-normal text-[var(--muted)]">Use the exact spelling, spacing and symbols shown in FPL.</span>
           </label>
           <label className="text-sm font-bold text-[var(--brand-strong)]">
             Manager name <span className="text-red-600">*</span>
-            <input className={inputClass} name="fpl_manager_name" required maxLength={120} disabled={disabled} placeholder="Mohamed Adams Sesay" />
+            <input className={inputClass} name="fpl_manager_name" required minLength={3} maxLength={120} disabled={disabled} placeholder="Mohamed Adams Sesay" />
+            <span className="mt-2 block text-xs font-normal text-[var(--muted)]">Use the manager name displayed beside your team.</span>
           </label>
         </div>
         <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
@@ -107,6 +122,10 @@ export function RegistrationForm({
       <section className="border-t border-[var(--border)] pt-8">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--brand)]">Declarations</p>
         <div className="mt-5 space-y-4">
+          <label className="flex gap-3 rounded-2xl border border-[var(--border)] bg-white p-4 text-sm leading-6 text-[var(--muted)]">
+            <input type="checkbox" name="age_confirmed" required disabled={disabled} className="mt-1 h-4 w-4" />
+            <span>I confirm that I am at least {minimumAge} years old. <span className="text-red-600">*</span></span>
+          </label>
           <label className="flex gap-3 rounded-2xl border border-[var(--border)] bg-white p-4 text-sm leading-6 text-[var(--muted)]">
             <input type="checkbox" name="rules_consent" required disabled={disabled} className="mt-1 h-4 w-4" />
             <span>I have read and accept the <Link href="/rules" className="font-black text-[var(--brand)] underline">competition rules</Link>. <span className="text-red-600">*</span></span>
