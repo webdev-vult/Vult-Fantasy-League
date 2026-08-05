@@ -7,11 +7,9 @@ import {
   getPublicCompetition,
   humanizeStatus,
 } from "@/lib/public/competition";
-import { getPublicGameweekFixtures } from "@/lib/public/fpl-fixtures";
+import { getPublicGameweek } from "@/lib/public/fpl-fixtures";
 
 export const dynamic = "force-dynamic";
-
-const GAMEWEEK_ONE_START = "2026-08-21T00:00:00Z";
 
 const features = [
   {
@@ -45,10 +43,12 @@ function formatKickoff(value: string | null) {
 }
 
 export default async function Home() {
-  const competition = await getPublicCompetition();
-  const startTarget = competition.startsAt ?? GAMEWEEK_ONE_START;
-  const seasonStarted = Date.now() >= new Date(startTarget).getTime();
-  const fixtures = seasonStarted ? await getPublicGameweekFixtures(1) : [];
+  const [competition, gameweek] = await Promise.all([
+    getPublicCompetition(),
+    getPublicGameweek(1),
+  ]);
+  const seasonStarted = Date.now() >= new Date(gameweek.firstKickoffTime).getTime();
+  const fixtures = seasonStarted ? gameweek.fixtures : [];
 
   return (
     <main className="min-h-screen bg-[#f4f6fb]">
@@ -82,7 +82,7 @@ export default async function Home() {
               <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-200">Current season</p>
               <h2 className="mt-3 text-3xl font-black">2026/27</h2>
             </div>
-            <GameweekCountdown target={startTarget} />
+            <GameweekCountdown target={gameweek.deadlineTime} />
             <dl className="space-y-4">
               <div className="rounded-2xl bg-white/5 p-4">
                 <dt className="text-xs font-bold text-blue-200">Registration closes</dt>
@@ -105,7 +105,7 @@ export default async function Home() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--brand)]">Fixtures</p>
-                <h2 className="mt-3 text-4xl font-black tracking-[-0.045em] text-[var(--brand-strong)]">Gameweek 1</h2>
+                <h2 className="mt-3 text-4xl font-black tracking-[-0.045em] text-[var(--brand-strong)]">{gameweek.name}</h2>
               </div>
               <p className="text-sm text-[var(--muted)]">Official fixture information from the FPL read-only provider.</p>
             </div>
