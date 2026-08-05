@@ -42,8 +42,16 @@ export default async function RegisterPage() {
               <dd className="mt-1 font-black">{formatPublicDate(competition.registrationClosesAt)}</dd>
             </div>
             <div>
+              <dt className="text-blue-200">Minimum age</dt>
+              <dd className="mt-1 font-black">{rules?.minimum_age ?? 18} years</dd>
+            </div>
+            <div>
               <dt className="text-blue-200">Official league</dt>
               <dd className="mt-1 font-black">Vult EPL Fantasy League 26/27</dd>
+            </div>
+            <div>
+              <dt className="text-blue-200">League code</dt>
+              <dd className="mt-1 font-black text-[var(--accent)]">ura0oj</dd>
             </div>
             <div>
               <dt className="text-blue-200">Submission status</dt>
@@ -52,7 +60,7 @@ export default async function RegisterPage() {
           </dl>
 
           <div className="mt-8 rounded-2xl bg-white/10 p-4 text-xs leading-6 text-blue-100">
-            Registration does not guarantee eligibility. Vult will verify the submitted team against league 538121, check duplicates and review rule compliance before approval.
+            Registration does not guarantee eligibility. Vult will resolve and store the numeric FPL Entry ID from league 538121, check duplicates and review rule compliance before approval.
           </div>
         </aside>
 
@@ -60,6 +68,7 @@ export default async function RegisterPage() {
           <RegistrationForm
             competitionSlug={competition.slug}
             registrationOpen={registrationOpen}
+            minimumAge={rules?.minimum_age ?? 18}
           />
         </div>
       </section>
