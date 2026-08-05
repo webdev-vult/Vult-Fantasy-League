@@ -26,7 +26,7 @@ export function GameweekCountdown({ target }: { target: string }) {
     return (
       <div className="rounded-3xl bg-[var(--accent)] p-6 text-[var(--brand-strong)]">
         <p className="text-xs font-black uppercase tracking-[0.16em]">Gameweek 1</p>
-        <p className="mt-2 text-2xl font-black">The 2026/27 season has started.</p>
+        <p className="mt-2 text-2xl font-black">The FPL deadline has passed.</p>
       </div>
     );
   }
@@ -41,7 +41,7 @@ export function GameweekCountdown({ target }: { target: string }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
       <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-200">Countdown to Gameweek 1</p>
-      <p className="mt-2 text-sm font-bold text-white">Friday, 21 August 2026</p>
+      <p className="mt-2 text-sm font-bold text-white">Friday, 21 August 2026 · 5:30 PM Sierra Leone</p>
       <div className="mt-5 grid grid-cols-4 gap-2">
         {units.map(([value, label]) => (
           <div key={label} className="rounded-2xl bg-white/10 px-2 py-4 text-center">
