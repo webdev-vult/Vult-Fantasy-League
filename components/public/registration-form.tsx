@@ -76,8 +76,9 @@ export function RegistrationForm({
         <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">How Vult can reach you</h2>
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <label className="text-sm font-bold text-[var(--brand-strong)]">
-            Phone number <span className="text-red-600">*</span>
+            Vult phone number <span className="text-red-600">*</span>
             <input className={inputClass} type="tel" name="phone" required disabled={disabled} autoComplete="tel" placeholder="+232 76 000000" />
+            <span className="mt-2 block text-xs font-normal text-[var(--muted)]">Use the phone number registered on your Vult account.</span>
           </label>
           <label className="text-sm font-bold text-[var(--brand-strong)]">
             WhatsApp number
