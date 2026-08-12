@@ -12,13 +12,17 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Register",
-  description: "Register for Vult EPL Fantasy 2026/27.",
+  description: "Register for the current Vult EPL Fantasy League season.",
 };
 
 export default async function RegisterPage() {
   const competition = await getPublicCompetition();
   const rules = await getPublishedRules(competition.id);
-  const registrationOpen = competition.registrationOpen && Boolean(rules);
+  const registrationOpen =
+    competition.registrationOpen &&
+    Boolean(rules) &&
+    Boolean(competition.externalLeagueId);
+  const leagueName = competition.fplLeagueName ?? "Official Vult FPL mini-league";
 
   return (
     <main className="min-h-screen bg-[#f4f6fb]">
@@ -34,6 +38,10 @@ export default async function RegisterPage() {
 
           <dl className="mt-8 space-y-5 border-t border-white/10 pt-6 text-sm">
             <div>
+              <dt className="text-blue-200">Season</dt>
+              <dd className="mt-1 font-black">{competition.seasonName ?? competition.seasonCode ?? "To be announced"}</dd>
+            </div>
+            <div>
               <dt className="text-blue-200">Registration opens</dt>
               <dd className="mt-1 font-black">{formatPublicDate(competition.registrationOpensAt)}</dd>
             </div>
@@ -47,12 +55,14 @@ export default async function RegisterPage() {
             </div>
             <div>
               <dt className="text-blue-200">Official league</dt>
-              <dd className="mt-1 font-black">Vult EPL Fantasy League 26/27</dd>
+              <dd className="mt-1 font-black">{leagueName}</dd>
             </div>
-            <div>
-              <dt className="text-blue-200">League code</dt>
-              <dd className="mt-1 font-black text-[var(--accent)]">ura0oj</dd>
-            </div>
+            {competition.fplLeagueCode ? (
+              <div>
+                <dt className="text-blue-200">League code</dt>
+                <dd className="mt-1 font-black text-[var(--accent)]">{competition.fplLeagueCode}</dd>
+              </div>
+            ) : null}
             <div>
               <dt className="text-blue-200">Submission status</dt>
               <dd className="mt-1 font-black text-[var(--accent)]">Pending verification after submission</dd>
@@ -60,7 +70,7 @@ export default async function RegisterPage() {
           </dl>
 
           <div className="mt-8 rounded-2xl bg-white/10 p-4 text-xs leading-6 text-blue-100">
-            Registration does not guarantee eligibility. Vult will resolve and store the numeric FPL Entry ID from league 538121, check duplicates and review rule compliance before approval.
+            Registration does not guarantee eligibility. Vult will resolve and store your numeric FPL Entry ID from the configured official league, check duplicates and review rule compliance before approval.
           </div>
         </aside>
 
@@ -69,6 +79,7 @@ export default async function RegisterPage() {
             competitionSlug={competition.slug}
             registrationOpen={registrationOpen}
             minimumAge={rules?.minimum_age ?? 18}
+            leagueCode={competition.fplLeagueCode}
           />
         </div>
       </section>
