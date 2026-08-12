@@ -13,32 +13,37 @@ const steps = [
   {
     title: "Create your official FPL team",
     description:
-      "Set up a team on the official Fantasy Premier League platform and keep the numeric Entry ID from your team URL.",
+      "Set up your team on the official Fantasy Premier League platform. You do not need to copy your numeric Entry ID for Vult registration.",
   },
   {
     title: "Join the Vult competition",
     description:
-      "Use the official Vult mini-league details published for the season and make sure your team remains in the league.",
+      "Join the official Vult FPL mini-league for the current season before submitting your Vult registration.",
   },
   {
     title: "Submit one seasonal registration",
     description:
-      "Provide your personal details, Vult reference and FPL Entry ID during the published registration window.",
+      "Provide your contact details and enter the exact Team name and Manager name shown in the official Vult FPL mini-league during the published registration window.",
   },
   {
-    title: "Complete verification",
+    title: "Vult resolves your FPL Entry ID",
     description:
-      "Vult checks duplicate entries, FPL information, Vult eligibility and compliance with the published rules.",
+      "The platform matches your Team and Manager names against the configured Vult league and stores the numeric FPL Entry ID automatically as the permanent fantasy-team identifier.",
+  },
+  {
+    title: "Complete eligibility review",
+    description:
+      "Vult checks FPL membership, duplicate risk, the published age declaration and any other eligibility or compliance requirements before approving a registration.",
   },
   {
     title: "Compete across the season",
     description:
-      "Approved participants can appear in weekly, monthly and overall rankings once score integration is active.",
+      "Approved participants can appear in weekly, monthly and overall rankings after official score data is validated and published.",
   },
   {
     title: "Winner review and payment",
     description:
-      "Provisional winners pass competition and compliance review before prize payment and public announcement.",
+      "Provisional winners pass competition and compliance review before final confirmation. Cash prizes are credited manually in Vult and the fantasy platform records the verified transaction for audit purposes.",
   },
 ];
 
@@ -55,7 +60,7 @@ export default async function HowItWorksPage() {
             From registration to verified winner.
           </h1>
           <p className="mt-6 text-lg leading-8 text-[var(--muted)]">
-            The Vult Fantasy Platform keeps registration, scoring, eligibility, winner approval and prize records in one controlled process.
+            The Vult Fantasy Platform keeps registration, score validation, eligibility, winner approval and prize records in one controlled process.
           </p>
         </div>
 
@@ -73,8 +78,8 @@ export default async function HowItWorksPage() {
 
         <div className="mt-12 rounded-[2rem] bg-[var(--brand-strong)] p-7 text-white sm:flex sm:items-center sm:justify-between sm:p-9">
           <div>
-            <p className="text-sm font-bold text-blue-200">Ready when registration opens?</p>
-            <h2 className="mt-2 text-2xl font-black">Prepare your FPL Entry ID and Vult account reference.</h2>
+            <p className="text-sm font-bold text-blue-200">Ready to register?</p>
+            <h2 className="mt-2 text-2xl font-black">Join the Vult FPL mini-league and have your exact Team and Manager names ready.</h2>
           </div>
           <Link href="/register" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-black text-[var(--brand)] sm:mt-0">
             View registration
