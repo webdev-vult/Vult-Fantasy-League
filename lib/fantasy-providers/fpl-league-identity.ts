@@ -1,8 +1,7 @@
 import "server-only";
+import { fetchOfficialFplJson } from "./fpl-http";
 
-const FPL_BASE_URL = "https://fantasy.premierleague.com/api";
 const MAX_PAGES = 500;
-const REQUEST_TIMEOUT_MS = 15_000;
 
 type LeagueRow = {
   entry?: number;
@@ -59,48 +58,12 @@ function endpoint(leagueId: string, standingsPage: number, newEntriesPage: numbe
   return `/leagues-classic/${encodeURIComponent(leagueId)}/standings/?${params.toString()}`;
 }
 
-async function fetchPage(path: string): Promise<LeagueResponse> {
-  let lastError: unknown = null;
-
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(`${FPL_BASE_URL}${path}`, {
-        method: "GET",
-        cache: "no-store",
-        credentials: "omit",
-        redirect: "error",
-        signal: controller.signal,
-        headers: {
-          accept: "application/json",
-          "user-agent": "VultFantasyPlatform/1.0 league-registration-lookup",
-        },
-      });
-
-      if (!response.ok) {
-        const retryable = response.status === 429 || response.status >= 500;
-        if (!retryable || attempt === 3) {
-          throw new Error(`FPL league lookup returned HTTP ${response.status}.`);
-        }
-        await new Promise((resolve) => setTimeout(resolve, attempt * 750));
-        continue;
-      }
-
-      return (await response.json()) as LeagueResponse;
-    } catch (error) {
-      lastError = error;
-      if (attempt === 3) break;
-      await new Promise((resolve) => setTimeout(resolve, attempt * 750));
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("The official FPL league could not be checked at this time.");
+async function fetchPage(path: string) {
+  return fetchOfficialFplJson<LeagueResponse>(path, {
+    timeoutMs: 15_000,
+    attempts: 3,
+    userAgent: "VultFantasyPlatform/1.0 league-registration-lookup",
+  });
 }
 
 async function getAllLeagueRows(leagueId: string) {
@@ -130,7 +93,9 @@ async function getAllLeagueRows(leagueId: string) {
   let hasNext = first.standings?.has_next === true;
   while (hasNext) {
     page += 1;
-    if (page > MAX_PAGES) throw new Error("The Vult FPL league exceeded the lookup safety limit.");
+    if (page > MAX_PAGES) {
+      throw new Error("The Vult FPL league exceeded the lookup safety limit.");
+    }
     const result = await fetchPage(endpoint(leagueId, page, 1));
     add(rows(result.standings));
     hasNext = result.standings?.has_next === true;
@@ -140,7 +105,9 @@ async function getAllLeagueRows(leagueId: string) {
   hasNext = first.new_entries?.has_next === true;
   while (hasNext) {
     page += 1;
-    if (page > MAX_PAGES) throw new Error("The Vult FPL new-entry list exceeded the lookup safety limit.");
+    if (page > MAX_PAGES) {
+      throw new Error("The Vult FPL new-entry list exceeded the lookup safety limit.");
+    }
     const result = await fetchPage(endpoint(leagueId, 1, page));
     add(rows(result.new_entries));
     hasNext = result.new_entries?.has_next === true;
