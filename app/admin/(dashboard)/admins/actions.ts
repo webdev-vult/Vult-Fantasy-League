@@ -80,7 +80,6 @@ export async function createAdminUserAction(
     },
     app_metadata: {
       vult_fantasy_admin_role: role,
-      must_change_password: true,
     },
   });
 
