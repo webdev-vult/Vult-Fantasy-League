@@ -16,16 +16,21 @@ export function RegistrationForm({
   competitionSlug,
   registrationOpen,
   minimumAge,
+  leagueCode,
 }: {
   competitionSlug: string;
   registrationOpen: boolean;
   minimumAge: number;
+  leagueCode: string | null;
 }) {
   const [state, formAction, pending] = useActionState(
     submitRegistrationAction,
     initialState,
   );
   const disabled = !registrationOpen || pending;
+  const leagueJoinUrl = leagueCode
+    ? `https://fantasy.premierleague.com/leagues/auto-join/${encodeURIComponent(leagueCode)}`
+    : null;
 
   return (
     <form action={formAction} className="space-y-8">
@@ -90,17 +95,23 @@ export function RegistrationForm({
         <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Match your official Vult league entry</h2>
         <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
           Join the official Vult FPL league first, then enter the <strong>Team name</strong> and <strong>Manager name</strong> exactly as shown under New entries or Standings.
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <a
-              href="https://fantasy.premierleague.com/leagues/auto-join/ura0oj"
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-black text-white"
-            >
-              Join Vult FPL league
-            </a>
-            <span className="text-xs font-black">League code: ura0oj</span>
-          </div>
+          {leagueJoinUrl && leagueCode ? (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <a
+                href={leagueJoinUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-black text-white"
+              >
+                Join Vult FPL league
+              </a>
+              <span className="text-xs font-black">League code: {leagueCode}</span>
+            </div>
+          ) : (
+            <p className="mt-3 text-xs font-bold">
+              The league join code has not been published for this season yet.
+            </p>
+          )}
         </div>
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <label className="text-sm font-bold text-[var(--brand-strong)]">

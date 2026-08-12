@@ -13,19 +13,52 @@ function remaining(target: string) {
   };
 }
 
-export function GameweekCountdown({ target }: { target: string }) {
-  const initial = useMemo(() => remaining(target), [target]);
+function formatDeadline(target: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Africa/Freetown",
+  }).format(new Date(target));
+}
+
+export function GameweekCountdown({
+  target,
+  gameweekName,
+}: {
+  target: string | null;
+  gameweekName: string;
+}) {
+  const initial = useMemo(() => (target ? remaining(target) : null), [target]);
   const [time, setTime] = useState(initial);
 
   useEffect(() => {
+    if (!target) {
+      setTime(null);
+      return;
+    }
+
+    setTime(remaining(target));
     const timer = window.setInterval(() => setTime(remaining(target)), 1_000);
     return () => window.clearInterval(timer);
   }, [target]);
 
+  if (!target || !time) {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-200">{gameweekName}</p>
+        <p className="mt-2 text-2xl font-black text-white">FPL deadline temporarily unavailable.</p>
+      </div>
+    );
+  }
+
   if (time.complete) {
     return (
       <div className="rounded-3xl bg-[var(--accent)] p-6 text-[var(--brand-strong)]">
-        <p className="text-xs font-black uppercase tracking-[0.16em]">Gameweek 1</p>
+        <p className="text-xs font-black uppercase tracking-[0.16em]">{gameweekName}</p>
         <p className="mt-2 text-2xl font-black">The FPL deadline has passed.</p>
       </div>
     );
@@ -40,8 +73,8 @@ export function GameweekCountdown({ target }: { target: string }) {
 
   return (
     <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-200">Countdown to Gameweek 1</p>
-      <p className="mt-2 text-sm font-bold text-white">Friday, 21 August 2026 · 5:30 PM Sierra Leone</p>
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-200">Countdown to {gameweekName}</p>
+      <p className="mt-2 text-sm font-bold text-white">{formatDeadline(target)} · Sierra Leone time</p>
       <div className="mt-5 grid grid-cols-4 gap-2">
         {units.map(([value, label]) => (
           <div key={label} className="rounded-2xl bg-white/10 px-2 py-4 text-center">

@@ -98,12 +98,14 @@ export async function updateParticipantProfileAction(formData: FormData) {
     const participantId = requiredText(formData, "participant_id", "Participant");
     const fullName = requiredText(formData, "full_name", "Full name");
     const phone = requiredText(formData, "phone", "Phone number");
-    const dateOfBirth = requiredText(formData, "date_of_birth", "Date of birth");
+    const dateOfBirth = optionalText(formData, "date_of_birth");
     const country = requiredText(formData, "country", "Country").toUpperCase();
-    const parsedDate = new Date(`${dateOfBirth}T00:00:00Z`);
 
-    if (Number.isNaN(parsedDate.getTime()) || parsedDate > new Date()) {
-      throw new Error("Date of birth is invalid.");
+    if (dateOfBirth) {
+      const parsedDate = new Date(`${dateOfBirth}T00:00:00Z`);
+      if (Number.isNaN(parsedDate.getTime()) || parsedDate > new Date()) {
+        throw new Error("Date of birth is invalid.");
+      }
     }
 
     const supabase = await createServerSupabaseClient();

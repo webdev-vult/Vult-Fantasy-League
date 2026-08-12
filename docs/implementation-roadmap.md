@@ -26,8 +26,8 @@ This document is the permanent delivery tracker for the Vult Fantasy Competition
 | 9 | Winner calculation and approval | Completed |
 | 10 | Prize and payment management | Completed |
 | 11 | Notifications, announcements and disputes | Completed |
-| 12 | Reports, analytics and audit | In Review |
-| 13 | Testing, launch and annual rollover | Pending |
+| 12 | Reports, analytics and audit | Completed |
+| 13 | Launch hardening, cleanup, testing and annual rollover | In Progress |
 | 14 | Advanced and future features | Pending |
 
 ## Phase 0 — Research, rules and governance
@@ -58,15 +58,15 @@ Permanent competitions, reusable seasons, competition-season links, lifecycle st
 
 ## Phase 5 — Public website and participant registration
 
-Public competition pages, rules, prizes, registration form, seasonal registration, Vult details, FPL Entry ID capture, consent records, and registration-window enforcement.
+Public competition pages, rules, prizes, registration form, seasonal registration, FPL identity matching, automatic FPL Entry ID resolution, consent records, age declaration, and registration-window enforcement.
 
 ## Phase 6 — Participant verification and management
 
-Admin participant list, duplicate detection, FPL verification, Vult verification, approval, rejection, suspension, disqualification, notes, status history, and exports.
+Admin participant list, duplicate detection, FPL verification, Vult verification, age/compliance review, approval, rejection, suspension, disqualification, notes, status history, and exports.
 
 ## Phase 7 — Fantasy data-provider integration
 
-Mock and CSV provider adapters, replaceable provider contracts, immutable raw snapshots, normalized staging records, validation, idempotency, retry lineage, structured integration errors, provider settings, and execution history. Approved FPL or licensed network connectors remain disabled until written data approval and credentials are available. Phase 7 does not publish leaderboard scores; Phase 8 promotes reviewed staging records into scoring.
+Mock and CSV provider adapters, replaceable provider contracts, immutable raw snapshots, normalized staging records, validation, idempotency, retry lineage, structured integration errors, provider settings, and execution history. The approved FPL connector is read-only and may only use explicitly approved FPL endpoints. Phase 7 does not publish leaderboard scores; Phase 8 promotes reviewed staging records into scoring.
 
 ## Phase 8 — Scores and leaderboards
 
@@ -89,7 +89,7 @@ Validated provider-score promotion, provisional and final Gameweek scores, trans
 
 - Prepare one controlled settlement obligation per confirmed winner
 - Snapshot winner, prize, amount, currency, payment method and deadline
-- Require a verified Vult destination for every cash or mixed prize
+- Require a verified Vult destination when a cash or mixed prize requires one
 - Separate Compliance Vult-account verification from Finance approval
 - Require Finance to credit the winner manually in the main Vult system
 - Record the transaction only after the credit is visible on the winner account
@@ -134,9 +134,62 @@ Validated provider-score promotion, provisional and final Gameweek scores, trans
 - Export season summary, operations, participant retention, prize spending and audit history as formula-safe CSV
 - Record every export in immutable export history and the audit log
 
-## Phase 13 — Testing, launch and annual rollover
+## Phase 13 — Launch hardening, cleanup, testing and annual rollover
 
-Security testing, role testing, scoring tests, mobile checks, performance, backups, user acceptance testing, launch preparation, season closure, archiving, Hall of Fame, and next-season creation.
+Phase 13 is a hardening phase, not a feature-expansion phase. Existing workflows must be made internally consistent, safe to operate and reusable beyond the 2026/27 launch.
+
+### Launch blockers
+
+- Keep competition lifecycle status and configured registration dates consistent and visibly warn administrators about conflicts
+- Replace the obsolete mandatory-DOB winner check with an age-declaration and compliance-verification workflow
+- Make Date of Birth optional in normal participant correction workflows and only require additional age evidence when policy or Compliance requires it
+- Configure and validate the real weekly, monthly and overall prize structure before awards are generated
+- Configure monthly Gameweek periods before monthly scoring is used
+- Run a complete FPL-to-score-to-winner-to-payment dress rehearsal before real prize processing
+
+### FPL and scoring hardening
+
+- Consolidate FPL network access behind one shared read-only client
+- Include fixture access in the approved FPL endpoint contract rather than bypassing the main provider controls
+- Replace Gameweek 1 hardcoding with current/next Gameweek discovery
+- Add short-lived caching and rate protection for league identity lookups
+- Define and test controlled score-sync scheduling while preserving human finalisation and winner approval
+- Test transfer deductions, chip rules, ties, monthly aggregation and score corrections
+
+### Multi-season hardening
+
+- Remove the hardcoded 2026/27 public competition slug and other season-specific public assumptions
+- Resolve the current public competition season from database configuration
+- Resolve league identity, season labels, deadlines and current Gameweek dynamically
+- Test season closure, archival, historical leaderboards and next-season creation without code changes
+
+### Code and product cleanup
+
+- Remove obsolete payment-attempt/reversal application actions that are no longer part of the manual Vult settlement model
+- Remove development-phase labels from production admin pages
+- Consolidate generated Supabase types to one canonical `types/database.ts`
+- Reduce unnecessary `as any` casts after type consolidation
+- Remove stale environment configuration and update `.env.example`
+- Review the accidental duplicate competition record and archive the test competition after UAT
+- Delete merged feature branches after Phase 13 is accepted
+
+### Policy, privacy and documentation
+
+- Update public registration, How It Works, Privacy, README and provider documentation to match the current Team + Manager registration flow
+- Separate leaderboard participation rules from optional winner-publicity consent if approved by the business/privacy owner
+- Document the manual Vult prize-payment operating procedure
+- Document Gameweek operations, incident handling, disputes and annual rollover
+
+### Security, quality and launch validation
+
+- Confirm repository visibility is intentional and contains no secrets or private operational material
+- Reduce public health-check detail to the minimum operational response
+- Align remaining mutation RPCs with the service-role server-action pattern where practical
+- Enable leaked-password protection before launch
+- Add automated tests for critical registration, scoring, winner, payment, role and dispute rules
+- Test all seven admin roles with real role separation
+- Run mobile, accessibility, performance, export, backup/restore and production monitoring checks
+- Complete UAT and production verification before marking Phase 13 complete
 
 ## Phase 14 — Advanced features
 
@@ -156,6 +209,7 @@ agent/phase-9-winner-approval
 agent/phase-10-prize-payments
 agent/phase-11-communications-disputes
 agent/phase-12-reports-analytics-audit
+agent/phase-13-launch-hardening-cleanup
 ```
 
 ## Completion rule

@@ -45,10 +45,19 @@ function formatKickoff(value: string | null) {
 export default async function Home() {
   const [competition, gameweek] = await Promise.all([
     getPublicCompetition(),
-    getPublicGameweek(1),
+    getPublicGameweek(),
   ]);
-  const seasonStarted = Date.now() >= new Date(gameweek.firstKickoffTime).getTime();
+  const firstKickoff = gameweek.firstKickoffTime
+    ? new Date(gameweek.firstKickoffTime).getTime()
+    : null;
+  const seasonStarted =
+    gameweek.fixtures.some((fixture) => fixture.started || fixture.finished) ||
+    (firstKickoff !== null && Date.now() >= firstKickoff);
   const fixtures = seasonStarted ? gameweek.fixtures : [];
+  const seasonLabel = competition.seasonName ?? competition.seasonCode ?? "Current season";
+  const leagueJoinUrl = competition.fplLeagueCode
+    ? `https://fantasy.premierleague.com/leagues/auto-join/${encodeURIComponent(competition.fplLeagueCode)}`
+    : null;
 
   return (
     <main className="min-h-screen bg-[#f4f6fb]">
@@ -80,9 +89,9 @@ export default async function Home() {
           <aside className="space-y-5 rounded-[2rem] border border-white/10 bg-white/5 p-7 backdrop-blur sm:p-8">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-200">Current season</p>
-              <h2 className="mt-3 text-3xl font-black">2026/27</h2>
+              <h2 className="mt-3 text-3xl font-black">{seasonLabel}</h2>
             </div>
-            <GameweekCountdown target={gameweek.deadlineTime} />
+            <GameweekCountdown target={gameweek.deadlineTime} gameweekName={gameweek.name} />
             <dl className="space-y-4">
               <div className="rounded-2xl bg-white/5 p-4">
                 <dt className="text-xs font-bold text-blue-200">Registration closes</dt>
@@ -177,7 +186,11 @@ export default async function Home() {
           </div>
           <div className="mt-6 flex flex-wrap gap-3 sm:mt-0 sm:justify-end">
             <Link href="/rules" className="rounded-xl bg-white px-5 py-3 text-sm font-black text-[var(--brand)]">Read rules</Link>
-            <a href="https://fantasy.premierleague.com/leagues/auto-join/ura0oj" target="_blank" rel="noreferrer" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-black text-white">Join Vult league</a>
+            {leagueJoinUrl ? (
+              <a href={leagueJoinUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-black text-white">Join Vult league</a>
+            ) : (
+              <Link href="/register" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-black text-white">View registration</Link>
+            )}
           </div>
         </div>
       </section>

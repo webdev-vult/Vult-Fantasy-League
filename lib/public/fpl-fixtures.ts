@@ -1,8 +1,5 @@
 import "server-only";
-
-const FPL_BASE_URL = "https://fantasy.premierleague.com/api";
-const GAMEWEEK_ONE_DEADLINE_FALLBACK = "2026-08-21T17:30:00Z";
-const GAMEWEEK_ONE_KICKOFF_FALLBACK = "2026-08-21T19:00:00Z";
+import { fetchOfficialFplJson } from "@/lib/fantasy-providers/fpl-http";
 
 export type PublicFixture = {
   id: number;
@@ -18,8 +15,8 @@ export type PublicFixture = {
 export type PublicGameweek = {
   id: number;
   name: string;
-  deadlineTime: string;
-  firstKickoffTime: string;
+  deadlineTime: string | null;
+  firstKickoffTime: string | null;
   fixtures: PublicFixture[];
   sourceAvailable: boolean;
 };
@@ -29,6 +26,9 @@ type BootstrapEvent = {
   id?: number;
   name?: string;
   deadline_time?: string;
+  is_current?: boolean;
+  is_next?: boolean;
+  finished?: boolean;
 };
 type FixtureRow = {
   id?: number;
@@ -41,20 +41,12 @@ type FixtureRow = {
   finished?: boolean;
 };
 
-async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${FPL_BASE_URL}${path}`, {
-    method: "GET",
-    cache: "no-store",
-    credentials: "omit",
-    redirect: "error",
-    signal: AbortSignal.timeout(15_000),
-    headers: {
-      accept: "application/json",
-      "user-agent": "VultFantasyPlatform/1.0 public-fixtures",
-    },
+function fetchJson<T>(path: string) {
+  return fetchOfficialFplJson<T>(path, {
+    timeoutMs: 15_000,
+    attempts: 3,
+    userAgent: "VultFantasyPlatform/1.0 public-fixtures",
   });
-  if (!response.ok) throw new Error(`FPL returned HTTP ${response.status} for ${path}.`);
-  return (await response.json()) as T;
 }
 
 function mapFixtures(teams: Map<number, string>, fixtures: FixtureRow[]) {
@@ -77,48 +69,84 @@ function mapFixtures(teams: Map<number, string>, fixtures: FixtureRow[]) {
     });
 }
 
-export async function getPublicGameweek(eventId = 1): Promise<PublicGameweek> {
+function selectEvent(events: BootstrapEvent[], requestedEventId?: number) {
+  if (requestedEventId !== undefined) {
+    return events.find((event) => event.id === requestedEventId) ?? null;
+  }
+
+  const current = events.find((event) => event.is_current === true);
+  if (current) return current;
+
+  const next = events.find((event) => event.is_next === true);
+  if (next) return next;
+
+  const upcoming = events
+    .filter((event) => event.finished !== true && typeof event.deadline_time === "string")
+    .sort(
+      (a, b) =>
+        new Date(a.deadline_time as string).getTime() -
+        new Date(b.deadline_time as string).getTime(),
+    )[0];
+  if (upcoming) return upcoming;
+
+  return [...events]
+    .filter((event) => Number.isInteger(event.id))
+    .sort((a, b) => Number(b.id) - Number(a.id))[0] ?? null;
+}
+
+export async function getPublicGameweek(eventId?: number): Promise<PublicGameweek> {
   try {
-    const [bootstrap, fixtures] = await Promise.all([
-      fetchJson<{ events?: BootstrapEvent[]; teams?: BootstrapTeam[] }>("/bootstrap-static/"),
-      fetchJson<FixtureRow[]>(`/fixtures/?event=${eventId}`),
-    ]);
+    const bootstrap = await fetchJson<{
+      events?: BootstrapEvent[];
+      teams?: BootstrapTeam[];
+    }>("/bootstrap-static/");
+    const events = Array.isArray(bootstrap.events) ? bootstrap.events : [];
+    const selectedEvent = selectEvent(events, eventId);
+
+    if (!selectedEvent || !Number.isInteger(selectedEvent.id)) {
+      throw new Error("FPL did not return a valid current or upcoming Gameweek.");
+    }
+
+    const selectedEventId = selectedEvent.id as number;
     const teams = new Map(
       (bootstrap.teams ?? [])
         .filter((team) => Number.isInteger(team.id) && typeof team.name === "string")
         .map((team) => [team.id as number, team.name as string]),
     );
-    const event = (bootstrap.events ?? []).find((item) => item.id === eventId);
-    const mappedFixtures = mapFixtures(teams, Array.isArray(fixtures) ? fixtures : []);
-    const firstKickoff = mappedFixtures.find((fixture) => fixture.kickoffTime)?.kickoffTime;
+
+    let mappedFixtures: PublicFixture[] = [];
+    let fixturesAvailable = true;
+    try {
+      const fixtures = await fetchJson<FixtureRow[]>(`/fixtures/?event=${selectedEventId}`);
+      mappedFixtures = mapFixtures(teams, Array.isArray(fixtures) ? fixtures : []);
+    } catch (error) {
+      fixturesAvailable = false;
+      console.error("Unable to load public FPL fixtures", error);
+    }
+
+    const firstKickoff = mappedFixtures.find((fixture) => fixture.kickoffTime)?.kickoffTime ?? null;
 
     return {
-      id: eventId,
-      name: event?.name ?? `Gameweek ${eventId}`,
-      deadlineTime:
-        event?.deadline_time ??
-        (eventId === 1 ? GAMEWEEK_ONE_DEADLINE_FALLBACK : new Date().toISOString()),
-      firstKickoffTime:
-        firstKickoff ??
-        (eventId === 1 ? GAMEWEEK_ONE_KICKOFF_FALLBACK : event?.deadline_time ?? new Date().toISOString()),
+      id: selectedEventId,
+      name: selectedEvent.name ?? `Gameweek ${selectedEventId}`,
+      deadlineTime: selectedEvent.deadline_time ?? null,
+      firstKickoffTime: firstKickoff,
       fixtures: mappedFixtures,
-      sourceAvailable: true,
+      sourceAvailable: fixturesAvailable,
     };
   } catch (error) {
     console.error("Unable to load public FPL gameweek", error);
     return {
-      id: eventId,
-      name: `Gameweek ${eventId}`,
-      deadlineTime:
-        eventId === 1 ? GAMEWEEK_ONE_DEADLINE_FALLBACK : new Date().toISOString(),
-      firstKickoffTime:
-        eventId === 1 ? GAMEWEEK_ONE_KICKOFF_FALLBACK : new Date().toISOString(),
+      id: eventId ?? 0,
+      name: eventId ? `Gameweek ${eventId}` : "Current Gameweek",
+      deadlineTime: null,
+      firstKickoffTime: null,
       fixtures: [],
       sourceAvailable: false,
     };
   }
 }
 
-export async function getPublicGameweekFixtures(eventId = 1): Promise<PublicFixture[]> {
+export async function getPublicGameweekFixtures(eventId?: number): Promise<PublicFixture[]> {
   return (await getPublicGameweek(eventId)).fixtures;
 }
