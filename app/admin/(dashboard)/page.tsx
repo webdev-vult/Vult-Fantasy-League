@@ -155,7 +155,7 @@ export default async function AdminOverviewPage() {
             Compare seasons, monitor operational performance and prize spending, publish official updates, and resolve participant disputes with complete evidence and audit history.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link href="/admin/reports" className="rounded-xl bg-white px-4 py-3 text-sm font-black text-[var(--brand-strong)]">
+            <Link href="/admin/reports" className="rounded-xl bg-white px-4 py-3 text-sm font-black text-[#0e1d49]">
               Reports
             </Link>
             <Link href="/admin/communications" className="rounded-xl border border-white/20 px-4 py-3 text-sm font-black text-white">
