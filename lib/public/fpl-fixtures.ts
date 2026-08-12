@@ -1,6 +1,5 @@
 import "server-only";
-
-const FPL_BASE_URL = "https://fantasy.premierleague.com/api";
+import { fetchOfficialFplJson } from "@/lib/fantasy-providers/fpl-http";
 
 export type PublicFixture = {
   id: number;
@@ -42,20 +41,12 @@ type FixtureRow = {
   finished?: boolean;
 };
 
-async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${FPL_BASE_URL}${path}`, {
-    method: "GET",
-    cache: "no-store",
-    credentials: "omit",
-    redirect: "error",
-    signal: AbortSignal.timeout(15_000),
-    headers: {
-      accept: "application/json",
-      "user-agent": "VultFantasyPlatform/1.0 public-fixtures",
-    },
+function fetchJson<T>(path: string) {
+  return fetchOfficialFplJson<T>(path, {
+    timeoutMs: 15_000,
+    attempts: 3,
+    userAgent: "VultFantasyPlatform/1.0 public-fixtures",
   });
-  if (!response.ok) throw new Error(`FPL returned HTTP ${response.status} for ${path}.`);
-  return (await response.json()) as T;
 }
 
 function mapFixtures(teams: Map<number, string>, fixtures: FixtureRow[]) {
