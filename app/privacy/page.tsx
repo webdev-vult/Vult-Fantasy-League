@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const sections = [
   {
     title: "Information provided during registration",
-    body: "Registration may collect your legal name, phone number, WhatsApp number, email address, country, exact FPL Team name, exact FPL Manager name, age-eligibility declaration and consent choices. The fields shown on the current registration form determine what you are asked to provide.",
+    body: "Registration may collect your legal name, Vult phone number, WhatsApp number, email address, country, exact FPL Team name, exact FPL Manager name, age-eligibility declaration and consent choices. The fields shown on the current registration form determine what you are asked to provide.",
   },
   {
     title: "Information resolved or created by the platform",
@@ -19,7 +19,7 @@ const sections = [
   },
   {
     title: "Later verification and prize information",
-    body: "Additional information may be recorded later when it is required for eligibility, compliance, winner review or prize settlement. This can include age-verification evidence, a verified Vult account reference, payment transaction references, payment evidence and administrative review notes. These items are not necessarily collected from every participant at initial registration.",
+    body: "Additional information may be recorded later when it is required for eligibility, compliance, winner review or prize settlement. This can include age-verification evidence, the result of verifying the Vult account associated with your submitted Vult phone number, payment transaction references, payment evidence and administrative review notes. These items are not necessarily collected from every participant at initial registration.",
   },
   {
     title: "Why the information is used",
