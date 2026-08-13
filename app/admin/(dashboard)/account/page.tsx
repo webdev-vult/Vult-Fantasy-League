@@ -4,6 +4,7 @@ import { changeAdminPasswordAction } from "./actions";
 type SearchParams = Promise<{
   success?: string;
   error?: string;
+  notice?: string;
 }>;
 
 const roleLabels: Record<string, string> = {
@@ -24,6 +25,8 @@ function errorMessage(code?: string) {
       return "The two password entries do not match.";
     case "password_update_failed":
       return "The password could not be changed. Sign in again and retry.";
+    case "password_flag_update_failed":
+      return "The password changed, but the first-login security flag could not be cleared. Contact a Super Admin before continuing.";
     default:
       return null;
   }
@@ -38,6 +41,7 @@ export default async function AdminAccountPage({
   const params = await searchParams;
   const error = errorMessage(params.error);
   const changed = params.success === "password_changed";
+  const mustChange = params.notice === "change_temporary_password";
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
@@ -52,6 +56,12 @@ export default async function AdminAccountPage({
           Review your administrator identity and replace a temporary or existing password with a private password known only to you.
         </p>
       </div>
+
+      {mustChange ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-900">
+          This account is using a temporary password. Change it now before accessing the rest of the Admin Portal.
+        </div>
+      ) : null}
 
       {changed ? (
         <div className="rounded-2xl border border-green-200 bg-green-50 px-5 py-4 text-sm font-bold text-green-800">
@@ -89,7 +99,7 @@ export default async function AdminAccountPage({
             Change password
           </h2>
           <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-            New administrators should replace the temporary password immediately after their first sign-in. Passwords are handled by Supabase Auth and are not stored in the Vult Fantasy admin profile.
+            New administrators must replace the temporary password after their first sign-in. Passwords are handled by Supabase Auth and are not stored in the Vult Fantasy admin profile.
           </p>
 
           <form action={changeAdminPasswordAction} className="mt-6 space-y-4">
