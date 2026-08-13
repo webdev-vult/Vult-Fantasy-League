@@ -1,0 +1,6 @@
+provider_entry_id,external_round_id,manager_name,team_name,reported_points,total_points,transfer_cost,chip_used,round_rank,overall_rank,is_provisional
+999999,1,Unknown Manager,Unknown FC,80,80,0,,1,9999,false
+900004,1,Wrong Manager Name,Delta Stars,75,75,0,,4,1003,false
+900005,1,Echo Manager,Echo Athletic,600,600,0,,5,1004,false
+900006,1,Foxtrot Manager,Foxtrot FC,71,71,250,,6,1005,false
+900007,99,Golf Manager,Golf Wanderers,70,70,0,,7,1006,false
