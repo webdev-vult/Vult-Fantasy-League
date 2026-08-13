@@ -185,7 +185,7 @@ export default async function Home() {
             <h2 className="mt-2 text-3xl font-black">Join the Vult mini-league and copy your exact Team and Manager names.</h2>
           </div>
           <div className="mt-6 flex flex-wrap gap-3 sm:mt-0 sm:justify-end">
-            <Link href="/rules" className="rounded-xl bg-white px-5 py-3 text-sm font-black text-[var(--brand)]">Read rules</Link>
+            <Link href="/rules" className="rounded-xl bg-white px-5 py-3 text-sm font-black text-[#162a63]">Read rules</Link>
             {leagueJoinUrl ? (
               <a href={leagueJoinUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-black text-white">Join Vult league</a>
             ) : (

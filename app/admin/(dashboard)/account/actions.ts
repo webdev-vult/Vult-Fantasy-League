@@ -1,0 +1,43 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+function passwordValue(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
+}
+
+function hasStrongPassword(value: string) {
+  return (
+    value.length >= 12 &&
+    /[a-z]/.test(value) &&
+    /[A-Z]/.test(value) &&
+    /[0-9]/.test(value) &&
+    /[^A-Za-z0-9]/.test(value)
+  );
+}
+
+export async function changeAdminPasswordAction(formData: FormData) {
+  await requireAdmin();
+  const password = passwordValue(formData, "password");
+  const confirmation = passwordValue(formData, "confirm_password");
+
+  if (!hasStrongPassword(password)) {
+    redirect("/admin/account?error=weak_password");
+  }
+
+  if (password !== confirmation) {
+    redirect("/admin/account?error=password_mismatch");
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    redirect("/admin/account?error=password_update_failed");
+  }
+
+  redirect("/admin/account?success=password_changed");
+}

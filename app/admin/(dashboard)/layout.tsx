@@ -15,7 +15,14 @@ const navigation = [
   { href: "/admin/communications", label: "Communications", ready: true },
   { href: "/admin/disputes", label: "Disputes", ready: true },
   { href: "/admin/reports", label: "Reports", ready: true },
-];
+  { href: "/admin/admins", label: "Admin users", ready: true, superAdminOnly: true },
+  { href: "/admin/account", label: "Account", ready: true },
+] satisfies Array<{
+  href: string;
+  label: string;
+  ready: boolean;
+  superAdminOnly?: boolean;
+}>;
 
 const roleLabels: Record<string, string> = {
   super_admin: "Super Admin",
@@ -37,6 +44,9 @@ export default async function AdminDashboardLayout({
     .slice(0, 2)
     .map((name) => name[0]?.toUpperCase())
     .join("");
+  const visibleNavigation = navigation.filter(
+    (item) => !item.superAdminOnly || admin.role === "super_admin",
+  );
 
   return (
     <div className="min-h-screen bg-[#f4f6fb] lg:grid lg:grid-cols-[260px_1fr]">
@@ -44,7 +54,7 @@ export default async function AdminDashboardLayout({
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between px-5 py-5 lg:px-6 lg:py-7">
             <Link href="/admin" className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-sm font-black text-[var(--brand)]">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-sm font-black text-[#162a63]">
                 V
               </span>
               <span>
@@ -58,7 +68,7 @@ export default async function AdminDashboardLayout({
           </div>
 
           <nav className="flex gap-2 overflow-x-auto px-4 pb-5 lg:block lg:space-y-1 lg:overflow-visible lg:px-4 lg:pb-0">
-            {navigation.map((item) =>
+            {visibleNavigation.map((item) =>
               item.ready ? (
                 <Link
                   key={item.label}
@@ -86,7 +96,7 @@ export default async function AdminDashboardLayout({
           <div className="mt-auto hidden border-t border-white/10 p-4 lg:block">
             <div className="rounded-2xl bg-white/5 p-4">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-black text-[var(--brand-strong)]">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-black text-[#0e1d49]">
                   {initials || "VA"}
                 </span>
                 <div className="min-w-0">
@@ -131,7 +141,7 @@ export default async function AdminDashboardLayout({
             <form action={signOutAdmin}>
               <button
                 type="submit"
-                className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-xs font-black text-[var(--brand)]"
+                className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-xs font-black text-[#162a63]"
               >
                 Sign out
               </button>
