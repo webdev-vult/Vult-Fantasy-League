@@ -2,6 +2,8 @@ import "server-only";
 import { fetchOfficialFplJson } from "./fpl-http";
 
 const MAX_PAGES = 500;
+const LEAGUE_CACHE_TTL_MS = 90_000;
+const MAX_CACHED_LEAGUES = 8;
 
 type LeagueRow = {
   entry?: number;
@@ -21,6 +23,18 @@ type LeagueResponse = {
   standings?: LeaguePage;
   new_entries?: LeaguePage;
 };
+
+type LeagueRowsResult = {
+  leagueName: string | null;
+  rows: LeagueRow[];
+};
+
+type LeagueCacheEntry = {
+  expiresAt: number;
+  value: Promise<LeagueRowsResult>;
+};
+
+const leagueCache = new Map<string, LeagueCacheEntry>();
 
 export type FplLeagueIdentity = {
   entryId: string;
@@ -66,11 +80,7 @@ async function fetchPage(path: string) {
   });
 }
 
-async function getAllLeagueRows(leagueId: string) {
-  if (!/^\d+$/.test(leagueId)) {
-    throw new Error("The official FPL league ID is invalid.");
-  }
-
+async function fetchAllLeagueRows(leagueId: string): Promise<LeagueRowsResult> {
   const first = await fetchPage(endpoint(leagueId, 1, 1));
   const returnedLeagueId = first.league?.id;
   if (typeof returnedLeagueId === "number" && String(returnedLeagueId) !== leagueId) {
@@ -117,6 +127,42 @@ async function getAllLeagueRows(leagueId: string) {
     leagueName: typeof first.league?.name === "string" ? first.league.name : null,
     rows: [...collected.values()],
   };
+}
+
+function trimLeagueCache(now: number) {
+  for (const [key, entry] of leagueCache) {
+    if (entry.expiresAt <= now) leagueCache.delete(key);
+  }
+
+  while (leagueCache.size >= MAX_CACHED_LEAGUES) {
+    const oldestKey = leagueCache.keys().next().value;
+    if (typeof oldestKey !== "string") break;
+    leagueCache.delete(oldestKey);
+  }
+}
+
+async function getAllLeagueRows(leagueId: string) {
+  if (!/^\d+$/.test(leagueId)) {
+    throw new Error("The official FPL league ID is invalid.");
+  }
+
+  const now = Date.now();
+  const cached = leagueCache.get(leagueId);
+  if (cached && cached.expiresAt > now) return cached.value;
+
+  if (cached) leagueCache.delete(leagueId);
+  trimLeagueCache(now);
+
+  const value = fetchAllLeagueRows(leagueId).catch((error) => {
+    leagueCache.delete(leagueId);
+    throw error;
+  });
+  leagueCache.set(leagueId, {
+    expiresAt: now + LEAGUE_CACHE_TTL_MS,
+    value,
+  });
+
+  return value;
 }
 
 export async function resolveOfficialFplLeagueIdentity(input: {
