@@ -80,6 +80,7 @@ export async function createAdminUserAction(
     },
     app_metadata: {
       vult_fantasy_admin_role: role,
+      must_change_password: true,
     },
   });
 
@@ -123,6 +124,7 @@ export async function createAdminUserAction(
       email,
       role,
       creation_method: "admin_panel_temporary_password",
+      must_change_password: true,
     },
   });
 
@@ -140,7 +142,7 @@ export async function createAdminUserAction(
 
   return {
     error: null,
-    success: `${fullName} was added as ${role.replaceAll("_", " ")}.`,
+    success: `${fullName} was added as ${role.replaceAll("_", " ")}. They must change the temporary password at first login.`,
     email,
     temporaryPassword,
   };
