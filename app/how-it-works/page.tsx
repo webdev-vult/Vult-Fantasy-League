@@ -23,7 +23,7 @@ const steps = [
   {
     title: "Submit one seasonal registration",
     description:
-      "Provide your contact details and enter the exact Team name and Manager name shown in the official Vult FPL mini-league during the published registration window.",
+      "Provide your contact details, including the phone number registered on your Vult account, and enter the exact Team name and Manager name shown in the official Vult FPL mini-league during the published registration window.",
   },
   {
     title: "Vult resolves your FPL Entry ID",
@@ -33,7 +33,7 @@ const steps = [
   {
     title: "Complete eligibility review",
     description:
-      "Vult checks FPL membership, duplicate risk, the published age declaration and any other eligibility or compliance requirements before approving a registration.",
+      "Vult verifies the submitted Vult phone number against the Vult account system and checks FPL membership, duplicate risk, the published age declaration and any other eligibility or compliance requirements before approving a registration.",
   },
   {
     title: "Compete across the season",
@@ -43,7 +43,7 @@ const steps = [
   {
     title: "Winner review and payment",
     description:
-      "Provisional winners pass competition and compliance review before final confirmation. Cash prizes are credited manually in Vult and the fantasy platform records the verified transaction for audit purposes.",
+      "Provisional winners pass competition and compliance review before final confirmation. Cash prizes are credited manually in Vult to the verified account and the fantasy platform records the transaction for audit purposes.",
   },
 ];
 
