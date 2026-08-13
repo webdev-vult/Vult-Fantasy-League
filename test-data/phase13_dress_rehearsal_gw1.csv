@@ -1,0 +1,8 @@
+provider_entry_id,external_round_id,manager_name,team_name,reported_points,total_points,transfer_cost,chip_used,round_rank,overall_rank,is_provisional
+900001,1,Alpha Manager,Alpha United,82,82,4,,2,1001,false
+900002,1,Bravo Manager,Bravo City,78,78,0,,3,1002,false
+900003,1,Charlie Manager,Charlie Rovers,84,84,0,triple_captain,1,1000,false
+900004,1,Delta Manager,Delta Stars,75,75,0,,4,1003,false
+900005,1,Echo Manager,Echo Athletic,72,72,0,,5,1004,false
+900006,1,Foxtrot Manager,Foxtrot FC,71,71,0,,6,1005,false
+900007,1,Golf Manager,Golf Wanderers,70,70,0,,7,1006,false
