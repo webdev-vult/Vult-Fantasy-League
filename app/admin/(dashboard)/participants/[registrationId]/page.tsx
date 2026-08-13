@@ -6,7 +6,6 @@ import {
   addRegistrationNoteAction,
   refreshDuplicateRiskAction,
   transitionRegistrationStatusAction,
-  updateFplVerificationAction,
   updateParticipantProfileAction,
   updateVultVerificationAction,
 } from "../actions";
@@ -21,21 +20,16 @@ type RegistrationDetail = {
   eligibility_status: string;
   registered_at: string;
   approved_at: string | null;
-  approved_by: string | null;
   rejection_reason: string | null;
   rules_version: number;
   registration_channel: string;
-  metadata: unknown;
   participant: {
     id: string;
     full_name: string;
     email: string | null;
     phone: string;
     whatsapp_phone: string | null;
-    date_of_birth: string | null;
     country: string;
-    city: string | null;
-    vult_customer_ref: string | null;
     status: string;
     created_at: string;
   } | null;
@@ -58,7 +52,6 @@ type RegistrationDetail = {
     fpl_checked_at: string | null;
     fpl_checked_by: string | null;
     vult_status: string;
-    vult_verified_reference: string | null;
     vult_notes: string | null;
     vult_checked_at: string | null;
     vult_checked_by: string | null;
@@ -162,14 +155,11 @@ export default async function ParticipantDetailPage({
         eligibility_status,
         registered_at,
         approved_at,
-        approved_by,
         rejection_reason,
         rules_version,
         registration_channel,
-        metadata,
         participant:participants!registrations_participant_id_fkey(
-          id, full_name, email, phone, whatsapp_phone, date_of_birth, country, city,
-          vult_customer_ref, status, created_at
+          id, full_name, email, phone, whatsapp_phone, country, status, created_at
         ),
         fantasy_entry:fantasy_entries(
           id, provider, provider_entry_id, manager_name, team_name, verified_at, last_synced_at
@@ -177,7 +167,7 @@ export default async function ParticipantDetailPage({
         verification:registration_verifications(
           id, fpl_status, fpl_verified_entry_id, fpl_manager_name, fpl_team_name,
           fpl_notes, fpl_checked_at, fpl_checked_by,
-          vult_status, vult_verified_reference, vult_notes, vult_checked_at, vult_checked_by,
+          vult_status, vult_notes, vult_checked_at, vult_checked_by,
           duplicate_risk, duplicate_risk_reasons, duplicate_checked_at, duplicate_checked_by
         ),
         competition_season:competition_seasons!registrations_competition_season_id_fkey(
@@ -222,7 +212,8 @@ export default async function ParticipantDetailPage({
   const verification = registration.verification;
   const duplicateReasons = stringArray(verification?.duplicate_risk_reasons);
   const canVerify = ["super_admin", "competition_manager", "compliance_officer"].includes(admin.role);
-  const canAddNotes = [...["super_admin", "competition_manager", "compliance_officer"], "support_officer"].includes(admin.role);
+  const canAddNotes = ["super_admin", "competition_manager", "compliance_officer", "support_officer"].includes(admin.role);
+  const fplVerified = verification?.fpl_status === "verified" && Boolean(entry?.verified_at);
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -302,32 +293,20 @@ export default async function ParticipantDetailPage({
                   <input name="full_name" required defaultValue={participant.full_name} disabled={!canVerify} className={inputClass} />
                 </label>
                 <label>
-                  <span className={labelClass}>Phone</span>
+                  <span className={labelClass}>Vult phone number</span>
                   <input name="phone" required defaultValue={participant.phone} disabled={!canVerify} className={inputClass} />
                 </label>
                 <label>
-                  <span className={labelClass}>WhatsApp</span>
+                  <span className={labelClass}>WhatsApp number</span>
                   <input name="whatsapp_phone" defaultValue={participant.whatsapp_phone ?? ""} disabled={!canVerify} className={inputClass} />
                 </label>
                 <label>
-                  <span className={labelClass}>Email</span>
+                  <span className={labelClass}>Email address</span>
                   <input type="email" name="email" defaultValue={participant.email ?? ""} disabled={!canVerify} className={inputClass} />
-                </label>
-                <label>
-                  <span className={labelClass}>Date of birth</span>
-                  <input type="date" name="date_of_birth" required defaultValue={participant.date_of_birth ?? ""} disabled={!canVerify} className={inputClass} />
-                </label>
-                <label>
-                  <span className={labelClass}>City or district</span>
-                  <input name="city" defaultValue={participant.city ?? ""} disabled={!canVerify} className={inputClass} />
                 </label>
                 <label>
                   <span className={labelClass}>Country code</span>
                   <input name="country" required defaultValue={participant.country} disabled={!canVerify} className={inputClass} />
-                </label>
-                <label className="sm:col-span-2">
-                  <span className={labelClass}>Vult customer reference</span>
-                  <input name="vult_customer_ref" defaultValue={participant.vult_customer_ref ?? ""} disabled={!canVerify} className={inputClass} />
                 </label>
                 {canVerify ? (
                   <div className="sm:col-span-2">
@@ -341,66 +320,84 @@ export default async function ParticipantDetailPage({
           </section>
 
           <section className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm sm:p-7">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">FPL verification</p>
-            <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Fantasy entry evidence</h2>
-            <div className="mt-5 rounded-2xl bg-[#f7f8fc] p-4 text-sm">
-              <p><span className="font-black">Submitted entry ID:</span> {entry?.provider_entry_id ?? "Not available"}</p>
-              <p className="mt-2"><span className="font-black">Submitted team:</span> {entry?.team_name ?? "Not provided"}</p>
-              <p className="mt-2"><span className="font-black">Provider:</span> {label(entry?.provider ?? "unknown")}</p>
-            </div>
-            <form action={updateFplVerificationAction} className="mt-6 grid gap-4 sm:grid-cols-2">
-              <input type="hidden" name="registration_id" value={registration.id} />
-              <label>
-                <span className={labelClass}>FPL status</span>
-                <select name="fpl_status" defaultValue={verification?.fpl_status ?? "pending"} disabled={!canVerify} className={inputClass}>
-                  {verificationStatuses.map((status) => <option key={status} value={status}>{label(status)}</option>)}
-                </select>
-              </label>
-              <label>
-                <span className={labelClass}>Verified entry ID</span>
-                <input name="fpl_verified_entry_id" inputMode="numeric" defaultValue={verification?.fpl_verified_entry_id ?? entry?.provider_entry_id ?? ""} disabled={!canVerify} className={inputClass} />
-              </label>
-              <label>
-                <span className={labelClass}>Manager name</span>
-                <input name="fpl_manager_name" defaultValue={verification?.fpl_manager_name ?? entry?.manager_name ?? ""} disabled={!canVerify} className={inputClass} />
-              </label>
-              <label>
-                <span className={labelClass}>Team name</span>
-                <input name="fpl_team_name" defaultValue={verification?.fpl_team_name ?? entry?.team_name ?? ""} disabled={!canVerify} className={inputClass} />
-              </label>
-              <label className="sm:col-span-2">
-                <span className={labelClass}>Verification notes</span>
-                <textarea name="fpl_notes" rows={4} defaultValue={verification?.fpl_notes ?? ""} disabled={!canVerify} className={inputClass} />
-              </label>
-              <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-[var(--muted)]">
-                  Checked by {verification?.fpl_checked_by ? adminNames.get(verification.fpl_checked_by) ?? "an administrator" : "nobody yet"} · {formatDate(verification?.fpl_checked_at ?? null)}
-                </p>
-                {canVerify ? <button className="rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-black text-white">Save FPL verification</button> : null}
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">FPL identity</p>
+                <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Automatically verified entry</h2>
               </div>
-            </form>
+              <span className={`rounded-full border px-3 py-1.5 text-xs font-black uppercase ${badgeClasses(verification?.fpl_status ?? "pending")}`}>
+                {label(verification?.fpl_status ?? "pending")}
+              </span>
+            </div>
+
+            {fplVerified ? (
+              <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-4 text-sm text-green-900">
+                <p className="font-black">Verified automatically from the official Vult FPL mini-league.</p>
+                <p className="mt-1 text-xs leading-5 text-green-800">
+                  The participant entered Team name and Manager name during registration. The platform matched them in the official league and stored the numeric FPL Entry ID internally.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                This entry is not currently marked automatically verified. Review the registration audit trail before approval.
+              </div>
+            )}
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl bg-[#f7f8fc] p-4">
+                <p className={labelClass}>FPL Entry ID</p>
+                <p className="mt-2 font-black text-[var(--brand-strong)]">{verification?.fpl_verified_entry_id ?? entry?.provider_entry_id ?? "Not available"}</p>
+              </div>
+              <div className="rounded-2xl bg-[#f7f8fc] p-4">
+                <p className={labelClass}>Provider</p>
+                <p className="mt-2 font-black text-[var(--brand-strong)]">{label(entry?.provider ?? "unknown")}</p>
+              </div>
+              <div className="rounded-2xl bg-[#f7f8fc] p-4">
+                <p className={labelClass}>Manager name</p>
+                <p className="mt-2 font-black text-[var(--brand-strong)]">{verification?.fpl_manager_name ?? entry?.manager_name ?? "Not available"}</p>
+              </div>
+              <div className="rounded-2xl bg-[#f7f8fc] p-4">
+                <p className={labelClass}>Team name</p>
+                <p className="mt-2 font-black text-[var(--brand-strong)]">{verification?.fpl_team_name ?? entry?.team_name ?? "Not available"}</p>
+              </div>
+            </div>
+            <p className="mt-4 text-xs text-[var(--muted)]">
+              Verification source: official Vult FPL mini-league · {formatDate(verification?.fpl_checked_at ?? entry?.verified_at ?? null)}
+            </p>
           </section>
 
           <section className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm sm:p-7">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">Vult verification</p>
-            <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Customer-account eligibility</h2>
-            <form action={updateVultVerificationAction} className="mt-6 grid gap-4 sm:grid-cols-2">
+            <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Verify the Vult account by phone number</h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+              Check the participant in the Vult system using the submitted Vult phone number. No separate customer reference is required.
+            </p>
+
+            <div className="mt-5 rounded-2xl bg-[#f7f8fc] p-4">
+              <p className={labelClass}>Vult phone number</p>
+              <p className="mt-2 text-lg font-black text-[var(--brand-strong)]">{participant?.phone ?? "Not available"}</p>
+            </div>
+
+            <form action={updateVultVerificationAction} className="mt-6 space-y-4">
               <input type="hidden" name="registration_id" value={registration.id} />
-              <label>
+              <label className="block">
                 <span className={labelClass}>Vult status</span>
                 <select name="vult_status" defaultValue={verification?.vult_status ?? "pending"} disabled={!canVerify} className={inputClass}>
                   {verificationStatuses.map((status) => <option key={status} value={status}>{label(status)}</option>)}
                 </select>
               </label>
-              <label>
-                <span className={labelClass}>Verified Vult reference</span>
-                <input name="vult_verified_reference" defaultValue={verification?.vult_verified_reference ?? participant?.vult_customer_ref ?? ""} disabled={!canVerify} className={inputClass} />
-              </label>
-              <label className="sm:col-span-2">
+              <label className="block">
                 <span className={labelClass}>Verification notes</span>
-                <textarea name="vult_notes" rows={4} defaultValue={verification?.vult_notes ?? ""} disabled={!canVerify} className={inputClass} />
+                <textarea
+                  name="vult_notes"
+                  rows={4}
+                  placeholder="Optional account-verification notes"
+                  defaultValue={verification?.vult_notes ?? ""}
+                  disabled={!canVerify}
+                  className={inputClass}
+                />
               </label>
-              <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs text-[var(--muted)]">
                   Checked by {verification?.vult_checked_by ? adminNames.get(verification.vult_checked_by) ?? "an administrator" : "nobody yet"} · {formatDate(verification?.vult_checked_at ?? null)}
                 </p>
@@ -445,7 +442,7 @@ export default async function ParticipantDetailPage({
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">Eligibility decision</p>
             <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Registration workflow</h2>
             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              Approval is blocked until FPL and required Vult verification are complete. High duplicate risk requires a Super Admin override.
+              FPL identity is verified automatically from the official league. Approval is available once the Vult phone number has been verified and duplicate risk is acceptable.
             </p>
             <form action={transitionRegistrationStatusAction} className="mt-6 space-y-4">
               <input type="hidden" name="registration_id" value={registration.id} />

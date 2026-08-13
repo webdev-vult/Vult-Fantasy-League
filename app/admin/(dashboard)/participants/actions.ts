@@ -97,22 +97,14 @@ export async function updateParticipantProfileAction(formData: FormData) {
   try {
     const participantId = requiredText(formData, "participant_id", "Participant");
     const fullName = requiredText(formData, "full_name", "Full name");
-    const phone = requiredText(formData, "phone", "Phone number");
-    const dateOfBirth = optionalText(formData, "date_of_birth");
+    const phone = requiredText(formData, "phone", "Vult phone number");
     const country = requiredText(formData, "country", "Country").toUpperCase();
-
-    if (dateOfBirth) {
-      const parsedDate = new Date(`${dateOfBirth}T00:00:00Z`);
-      if (Number.isNaN(parsedDate.getTime()) || parsedDate > new Date()) {
-        throw new Error("Date of birth is invalid.");
-      }
-    }
 
     const supabase = await createServerSupabaseClient();
     const db = supabase as any;
     const { data: existing, error: existingError } = await db
       .from("participants")
-      .select("id, full_name, email, phone, whatsapp_phone, date_of_birth, country, city, vult_customer_ref")
+      .select("id, full_name, email, phone, whatsapp_phone, country")
       .eq("id", participantId)
       .single();
 
@@ -125,16 +117,13 @@ export async function updateParticipantProfileAction(formData: FormData) {
       email: optionalText(formData, "email"),
       phone,
       whatsapp_phone: optionalText(formData, "whatsapp_phone"),
-      date_of_birth: dateOfBirth,
       country,
-      city: optionalText(formData, "city"),
-      vult_customer_ref: optionalText(formData, "vult_customer_ref"),
     };
 
     const { error } = await db.from("participants").update(updates).eq("id", participantId);
     if (error) {
       if (error.code === "23505") {
-        throw new Error("The phone, email, or Vult reference is already used by another participant.");
+        throw new Error("The Vult phone number or email address is already used by another participant.");
       }
       throw new Error(error.message);
     }
@@ -156,6 +145,9 @@ export async function updateParticipantProfileAction(formData: FormData) {
   redirectToRegistration(registrationId, "success", "Participant details updated.");
 }
 
+// Kept as a protected exception workflow for authorised administrators.
+// Normal registrations are automatically FPL-verified when the official
+// Vult mini-league lookup resolves Team + Manager to a numeric Entry ID.
 export async function updateFplVerificationAction(formData: FormData) {
   const admin = await requireAdminRole(VERIFICATION_ROLES);
   const registrationId = requiredText(formData, "registration_id", "Registration");
@@ -215,6 +207,7 @@ export async function updateFplVerificationAction(formData: FormData) {
       verified_entry_id: entryId,
       manager_name: managerName,
       team_name: teamName,
+      source: "admin_exception_workflow",
     });
   } catch (error) {
     redirectToRegistration(
@@ -238,21 +231,43 @@ export async function updateVultVerificationAction(formData: FormData) {
       VERIFICATION_STATUSES,
       "Vult status",
     );
-    const reference = optionalText(formData, "vult_verified_reference");
-
-    if (status === "verified" && !reference) {
-      throw new Error("A verified Vult reference is required.");
-    }
 
     const supabase = await createServerSupabaseClient();
     const db = supabase as any;
+    const { data: registration, error: registrationError } = await db
+      .from("registrations")
+      .select("participant_id")
+      .eq("id", registrationId)
+      .single();
+
+    if (registrationError || !registration) {
+      throw new Error(registrationError?.message ?? "Registration not found.");
+    }
+
+    const { data: participant, error: participantError } = await db
+      .from("participants")
+      .select("phone")
+      .eq("id", registration.participant_id)
+      .single();
+
+    if (participantError || !participant) {
+      throw new Error(participantError?.message ?? "Participant not found.");
+    }
+
+    const vultPhone = String(participant.phone ?? "").trim();
+    if (status === "verified" && !vultPhone) {
+      throw new Error("A Vult phone number is required before Vult verification can be completed.");
+    }
+
+    const checkedAt = new Date().toISOString();
     const { error } = await db.from("registration_verifications").upsert(
       {
         registration_id: registrationId,
         vult_status: status,
-        vult_verified_reference: reference,
+        // Legacy column retained for compatibility; it now stores the verified Vult phone number.
+        vult_verified_reference: status === "verified" ? vultPhone : null,
         vult_notes: optionalText(formData, "vult_notes"),
-        vult_checked_at: new Date().toISOString(),
+        vult_checked_at: checkedAt,
         vult_checked_by: admin.id,
       },
       { onConflict: "registration_id" },
@@ -262,7 +277,9 @@ export async function updateVultVerificationAction(formData: FormData) {
 
     await writeAuditLog(admin.id, "vult_verification_updated", "registration", registrationId, {
       status,
-      verified_reference: reference,
+      vult_phone_number: status === "verified" ? vultPhone : null,
+      verification_source: "vult_phone_lookup",
+      checked_at: checkedAt,
     });
   } catch (error) {
     redirectToRegistration(
