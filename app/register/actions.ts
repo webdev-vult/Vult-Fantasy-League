@@ -1,5 +1,7 @@
 "use server";
 
+import { createHmac } from "node:crypto";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { resolveOfficialFplLeagueIdentity } from "@/lib/fantasy-providers/fpl-league-identity";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
@@ -11,6 +13,7 @@ export type RegistrationState = {
 const SAFE_MESSAGES = [
   "Registration is not currently open.",
   "Registration is not currently available.",
+  "Too many registration attempts. Please wait a few minutes and try again.",
   "You must accept the competition rules and privacy notice.",
   "You must confirm that you meet the minimum age requirement.",
   "Enter your full legal name.",
@@ -41,6 +44,78 @@ function safeErrorMessage(message: string) {
     "We could not submit your registration. Review your details and try again.";
 }
 
+function normalizeRateLimitValue(input: string) {
+  return input.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function rateLimitKey(kind: string, rawValue: string) {
+  const secret = process.env.REGISTRATION_RATE_LIMIT_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) throw new Error("Registration is not currently available.");
+
+  return createHmac("sha256", secret)
+    .update(`${kind}:${rawValue}`)
+    .digest("hex");
+}
+
+async function consumeRateLimit(
+  db: any,
+  keyHash: string,
+  limit: number,
+  windowSeconds = 600,
+) {
+  const { data, error } = await db.rpc("consume_public_registration_rate_limit", {
+    p_key_hash: keyHash,
+    p_limit: limit,
+    p_window_seconds: windowSeconds,
+  });
+
+  if (error) throw new Error("Registration is not currently available.");
+  const result = Array.isArray(data) ? data[0] : data;
+  return result?.allowed === true;
+}
+
+async function enforceRegistrationRateLimits(
+  db: any,
+  input: {
+    competitionSlug: string;
+    phone: string;
+    teamName: string;
+    managerName: string;
+  },
+) {
+  const requestHeaders = await headers();
+  const forwardedFor =
+    requestHeaders.get("x-vercel-forwarded-for") ?? requestHeaders.get("x-forwarded-for") ?? "";
+  const clientIp = forwardedFor.split(",")[0]?.trim() ?? "";
+
+  const identity = [
+    input.competitionSlug,
+    normalizeRateLimitValue(input.phone),
+    normalizeRateLimitValue(input.teamName),
+    normalizeRateLimitValue(input.managerName),
+  ].join("|");
+
+  const identityAllowed = await consumeRateLimit(
+    db,
+    rateLimitKey("registration-identity", identity),
+    5,
+  );
+  if (!identityAllowed) {
+    throw new Error("Too many registration attempts. Please wait a few minutes and try again.");
+  }
+
+  if (clientIp) {
+    const ipAllowed = await consumeRateLimit(
+      db,
+      rateLimitKey("registration-ip", `${input.competitionSlug}|${clientIp}`),
+      12,
+    );
+    if (!ipAllowed) {
+      throw new Error("Too many registration attempts. Please wait a few minutes and try again.");
+    }
+  }
+}
+
 export async function submitRegistrationAction(
   _previousState: RegistrationState,
   formData: FormData,
@@ -48,6 +123,7 @@ export async function submitRegistrationAction(
   const competitionSlug = value(formData, "competition_slug");
   const teamName = value(formData, "fpl_team_name");
   const managerName = value(formData, "fpl_manager_name");
+  const phone = value(formData, "phone");
 
   if (value(formData, "company")) {
     return { error: "Unable to submit this registration." };
@@ -80,6 +156,13 @@ export async function submitRegistrationAction(
       return { error: "The official Vult FPL league is not configured yet." };
     }
 
+    await enforceRegistrationRateLimits(db, {
+      competitionSlug,
+      phone,
+      teamName,
+      managerName,
+    });
+
     const resolved = await resolveOfficialFplLeagueIdentity({
       leagueId,
       teamName,
@@ -89,7 +172,7 @@ export async function submitRegistrationAction(
     const response = await db.rpc("submit_public_registration", {
       p_competition_season_slug: competitionSlug,
       p_full_name: value(formData, "full_name"),
-      p_phone: value(formData, "phone"),
+      p_phone: phone,
       p_whatsapp_phone: value(formData, "whatsapp_phone"),
       p_email: value(formData, "email"),
       p_country: value(formData, "country"),
