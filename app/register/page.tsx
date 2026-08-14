@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 export default async function RegisterPage() {
   const competition = await getPublicCompetition();
-  const rules = await getPublishedRules(competition.id);
+  const rules = await getPublishedRules(competition.id, competition.rulesVersion);
   const registrationOpen =
     competition.registrationOpen &&
     Boolean(rules) &&
@@ -79,6 +79,7 @@ export default async function RegisterPage() {
             competitionSlug={competition.slug}
             registrationOpen={registrationOpen}
             minimumAge={rules?.minimum_age ?? 18}
+            requiresVultAccount={rules?.requires_vult_account ?? false}
             leagueCode={competition.fplLeagueCode}
           />
         </div>

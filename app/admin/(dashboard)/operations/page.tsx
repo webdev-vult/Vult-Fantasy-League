@@ -5,6 +5,7 @@ import {
   publishRuleVersionAction,
   seedRoundsAction,
   togglePrizeAction,
+  updateDraftRuleVersionAction,
   updateMonthlyPeriodAction,
   updateRoundAction,
 } from "./actions";
@@ -123,6 +124,65 @@ function stringList(value: unknown) {
   return Array.isArray(value) ? value.map(String) : [];
 }
 
+function RuleFormFields({
+  rule,
+  defaultTitle,
+}: {
+  rule?: CompetitionRule;
+  defaultTitle: string;
+}) {
+  return (
+    <>
+      <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">
+        Title
+        <input name="title" required defaultValue={rule?.title ?? defaultTitle} className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
+      </label>
+      <label className="text-xs font-bold text-[var(--muted)]">
+        Minimum age
+        <input name="minimum_age" type="number" min="0" defaultValue={rule?.minimum_age ?? 18} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
+      </label>
+      <label className="text-xs font-bold text-[var(--muted)]">
+        Eligible country codes
+        <input name="eligible_country_codes" defaultValue={rule?.eligible_country_codes.join(", ") ?? "SL"} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
+      </label>
+      <label className="text-xs font-bold text-[var(--muted)]">
+        Weekly chip policy
+        <select name="weekly_chip_policy" defaultValue={rule?.weekly_chip_policy ?? "exclude_score_affecting_chips"} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm">
+          <option value="exclude_score_affecting_chips">Exclude score-affecting chips</option>
+          <option value="allow_all">Allow all chips</option>
+        </select>
+      </label>
+      <label className="text-xs font-bold text-[var(--muted)]">
+        Dispute window (hours)
+        <input name="dispute_window_hours" type="number" min="1" defaultValue={rule?.dispute_window_hours ?? 72} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
+      </label>
+      <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">
+        Tie-breakers, in order
+        <input name="tie_breakers" defaultValue={stringList(rule?.tie_breakers).join(", ") || "lowest_fpl_entry_id, earliest_registration"} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
+      </label>
+      <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">
+        Disqualification rules, one per line
+        <textarea name="disqualification_rules" rows={3} defaultValue={stringList(rule?.disqualification_rules).join("\n")} placeholder="Duplicate entry&#10;False identity information" className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
+      </label>
+      <div className="grid gap-2 text-xs font-bold text-[var(--brand-strong)] sm:col-span-2 sm:grid-cols-2">
+        <label className="flex items-center gap-2"><input name="requires_vult_account" type="checkbox" defaultChecked={rule?.requires_vult_account ?? true} /> Require a Vult account</label>
+        <label className="flex items-center gap-2"><input name="one_entry_per_participant" type="checkbox" defaultChecked={rule?.one_entry_per_participant ?? true} /> One entry per participant</label>
+        <label className="flex items-center gap-2"><input name="include_transfer_deductions" type="checkbox" defaultChecked={rule?.include_transfer_deductions ?? true} /> Include transfer deductions</label>
+        <label className="flex items-center gap-2"><input name="repeat_weekly_winners_allowed" type="checkbox" defaultChecked={rule?.repeat_weekly_winners_allowed ?? true} /> Allow repeat weekly winners</label>
+        <label className="flex items-center gap-2"><input name="employees_eligible" type="checkbox" defaultChecked={rule?.employees_eligible ?? false} /> Employees eligible</label>
+      </div>
+      <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">
+        Effective date
+        <input name="effective_at" type="datetime-local" defaultValue={rule?.status === "draft" ? dateTimeLocal(rule.effective_at) : ""} className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
+      </label>
+      <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">
+        Notes
+        <textarea name="notes" rows={2} defaultValue={rule?.notes ?? ""} className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
+      </label>
+    </>
+  );
+}
+
 export default async function CompetitionOperationsPage({ searchParams }: { searchParams: SearchParams }) {
   const admin = await requireAdmin();
   const params = await searchParams;
@@ -195,7 +255,11 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
     admin.role,
   );
   const currentRound = rounds.find((round) => round.is_current);
-  const publishedRule = rules.find((rule) => rule.status === "published");
+  const publishedRule = rules.find(
+    (rule) =>
+      rule.status === "published" &&
+      rule.version === selectedSeason?.rules_version,
+  );
   const activePrizes = prizes.filter((prize) => prize.is_active).length;
 
   return (
@@ -435,7 +499,9 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
             <article className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm sm:p-8">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--brand)]">Competition rules</p>
               <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Versioned rulebook</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Published versions remain in history. Changes should be made through a new draft version.</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Published versions remain read-only because participants consent to a specific version. Create or edit a draft, then publish it to make it active for new registrations.
+              </p>
 
               <div className="mt-6 space-y-3">
                 {rules.map((rule) => (
@@ -446,7 +512,12 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                           <p className="font-black text-[var(--brand-strong)]">v{rule.version} — {rule.title}</p>
                           <p className="mt-1 text-xs text-[var(--muted)]">Minimum age {rule.minimum_age} • Dispute window {rule.dispute_window_hours} hours</p>
                         </div>
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black capitalize text-[var(--brand)]">{rule.status}</span>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {rule.version === selectedSeason.rules_version ? (
+                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">Active</span>
+                          ) : null}
+                          <span className="rounded-full bg-white px-3 py-1 text-xs font-black capitalize text-[var(--brand)]">{rule.status}</span>
+                        </div>
                       </div>
                     </summary>
                     <div className="mt-4 grid gap-3 text-sm text-[var(--muted)] sm:grid-cols-2">
@@ -456,12 +527,23 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                       <p><strong className="text-[var(--brand-strong)]">Employees eligible:</strong> {rule.employees_eligible ? "Yes" : "No"}</p>
                       <p className="sm:col-span-2"><strong className="text-[var(--brand-strong)]">Tie-breakers:</strong> {stringList(rule.tie_breakers).join(" → ")}</p>
                     </div>
-                    {canManage && rule.status !== "published" ? (
-                      <form action={publishRuleVersionAction} className="mt-4">
-                        <input type="hidden" name="competition_season_id" value={selectedSeason.id} />
-                        <input type="hidden" name="rule_id" value={rule.id} />
-                        <button className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-black text-white">Publish this version</button>
-                      </form>
+                    {canManage && rule.status === "draft" ? (
+                      <div className="mt-5 space-y-4 border-t border-[var(--border)] pt-4">
+                        <details className="rounded-2xl border border-[var(--border)] bg-white p-4">
+                          <summary className="cursor-pointer font-black text-[var(--brand)]">Edit this draft</summary>
+                          <form action={updateDraftRuleVersionAction} className="mt-4 grid gap-4 sm:grid-cols-2">
+                            <input type="hidden" name="competition_season_id" value={selectedSeason.id} />
+                            <input type="hidden" name="rule_id" value={rule.id} />
+                            <RuleFormFields rule={rule} defaultTitle={`${selectedSeason.name} Competition Rules`} />
+                            <button className="rounded-xl border border-[var(--brand)] bg-white px-4 py-3 text-sm font-black text-[var(--brand)] sm:col-span-2">Save draft changes</button>
+                          </form>
+                        </details>
+                        <form action={publishRuleVersionAction}>
+                          <input type="hidden" name="competition_season_id" value={selectedSeason.id} />
+                          <input type="hidden" name="rule_id" value={rule.id} />
+                          <button className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-black text-white">Publish and activate this version</button>
+                        </form>
+                      </div>
                     ) : null}
                   </details>
                 ))}
@@ -470,25 +552,10 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
 
               {canManage ? (
                 <details className="mt-6 rounded-2xl border border-[var(--border)] p-4">
-                  <summary className="cursor-pointer font-black text-[var(--brand)]">Create new draft rule version</summary>
+                  <summary className="cursor-pointer font-black text-[var(--brand)]">Create editable draft from the active rules</summary>
                   <form action={createRuleVersionAction} className="mt-4 grid gap-4 sm:grid-cols-2">
                     <input type="hidden" name="competition_season_id" value={selectedSeason.id} />
-                    <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">Title<input name="title" required defaultValue={`${selectedSeason.name} Competition Rules`} className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                    <label className="text-xs font-bold text-[var(--muted)]">Minimum age<input name="minimum_age" type="number" min="0" defaultValue="18" required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                    <label className="text-xs font-bold text-[var(--muted)]">Eligible country codes<input name="eligible_country_codes" defaultValue="SL" required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                    <label className="text-xs font-bold text-[var(--muted)]">Weekly chip policy<select name="weekly_chip_policy" defaultValue="exclude_score_affecting_chips" className="mt-1 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm"><option value="exclude_score_affecting_chips">Exclude score-affecting chips</option><option value="allow_all">Allow all chips</option></select></label>
-                    <label className="text-xs font-bold text-[var(--muted)]">Dispute window (hours)<input name="dispute_window_hours" type="number" min="1" defaultValue="72" required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                    <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">Tie-breakers, in order<input name="tie_breakers" defaultValue="lowest_fpl_entry_id, earliest_registration" required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                    <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">Disqualification rules, one per line<textarea name="disqualification_rules" rows={3} placeholder="Duplicate entry&#10;False identity information" className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                    <div className="grid gap-2 text-xs font-bold text-[var(--brand-strong)] sm:col-span-2 sm:grid-cols-2">
-                      <label className="flex items-center gap-2"><input name="requires_vult_account" type="checkbox" defaultChecked /> Require a Vult account</label>
-                      <label className="flex items-center gap-2"><input name="one_entry_per_participant" type="checkbox" defaultChecked /> One entry per participant</label>
-                      <label className="flex items-center gap-2"><input name="include_transfer_deductions" type="checkbox" defaultChecked /> Include transfer deductions</label>
-                      <label className="flex items-center gap-2"><input name="repeat_weekly_winners_allowed" type="checkbox" defaultChecked /> Allow repeat weekly winners</label>
-                      <label className="flex items-center gap-2"><input name="employees_eligible" type="checkbox" /> Employees eligible</label>
-                    </div>
-                    <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">Effective date<input name="effective_at" type="datetime-local" className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                    <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">Notes<textarea name="notes" rows={2} className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
+                    <RuleFormFields rule={publishedRule} defaultTitle={`${selectedSeason.name} Competition Rules`} />
                     <button className="rounded-xl bg-[var(--brand)] px-4 py-3 text-sm font-black text-white sm:col-span-2">Create draft version</button>
                   </form>
                 </details>

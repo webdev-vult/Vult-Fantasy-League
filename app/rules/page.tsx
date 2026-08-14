@@ -18,7 +18,7 @@ function stringList(value: unknown) {
 
 export default async function RulesPage() {
   const competition = await getPublicCompetition();
-  const rules = await getPublishedRules(competition.id);
+  const rules = await getPublishedRules(competition.id, competition.rulesVersion);
   const tieBreakers = stringList(rules?.tie_breakers);
   const disqualifications = stringList(rules?.disqualification_rules);
 

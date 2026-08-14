@@ -222,7 +222,10 @@ export async function getPublicCompetition(): Promise<PublicCompetition> {
   }
 }
 
-export async function getPublishedRules(competitionSeasonId: string | null) {
+export async function getPublishedRules(
+  competitionSeasonId: string | null,
+  rulesVersion: number,
+) {
   if (!competitionSeasonId) return null;
 
   try {
@@ -233,9 +236,8 @@ export async function getPublishedRules(competitionSeasonId: string | null) {
         "id, version, title, minimum_age, eligible_country_codes, requires_vult_account, one_entry_per_participant, employees_eligible, weekly_chip_policy, include_transfer_deductions, repeat_weekly_winners_allowed, dispute_window_hours, tie_breakers, disqualification_rules, notes, published_at",
       )
       .eq("competition_season_id", competitionSeasonId)
+      .eq("version", rulesVersion)
       .eq("status", "published")
-      .order("version", { ascending: false })
-      .limit(1)
       .maybeSingle();
 
     if (error) return null;
