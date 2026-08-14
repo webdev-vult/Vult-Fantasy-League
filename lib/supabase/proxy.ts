@@ -15,6 +15,15 @@ function getSupabasePublicConfig() {
   return { url, publishableKey };
 }
 
+function requiresPasswordChange(claims: unknown) {
+  if (!claims || typeof claims !== "object" || Array.isArray(claims)) return false;
+  const appMetadata = (claims as Record<string, unknown>).app_metadata;
+  if (!appMetadata || typeof appMetadata !== "object" || Array.isArray(appMetadata)) {
+    return false;
+  }
+  return (appMetadata as Record<string, unknown>).must_change_password === true;
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const { url, publishableKey } = getSupabasePublicConfig();
@@ -53,6 +62,19 @@ export async function updateSession(request: NextRequest) {
     );
 
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (
+    isAuthenticated &&
+    isProtectedAdminRoute &&
+    request.nextUrl.pathname !== "/admin/account" &&
+    requiresPasswordChange(data?.claims)
+  ) {
+    const accountUrl = request.nextUrl.clone();
+    accountUrl.pathname = "/admin/account";
+    accountUrl.search = "";
+    accountUrl.searchParams.set("notice", "change_temporary_password");
+    return NextResponse.redirect(accountUrl);
   }
 
   return response;

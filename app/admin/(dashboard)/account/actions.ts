@@ -2,7 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  createAdminSupabaseClient,
+  createServerSupabaseClient,
+} from "@/lib/supabase/server";
 
 function passwordValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -20,7 +23,7 @@ function hasStrongPassword(value: string) {
 }
 
 export async function changeAdminPasswordAction(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const password = passwordValue(formData, "password");
   const confirmation = passwordValue(formData, "confirm_password");
 
@@ -37,6 +40,18 @@ export async function changeAdminPasswordAction(formData: FormData) {
 
   if (error) {
     redirect("/admin/account?error=password_update_failed");
+  }
+
+  const adminClient = createAdminSupabaseClient();
+  const { error: metadataError } = await adminClient.auth.admin.updateUserById(admin.id, {
+    app_metadata: {
+      vult_fantasy_admin_role: admin.role,
+      must_change_password: false,
+    },
+  });
+
+  if (metadataError) {
+    redirect("/admin/account?error=password_flag_update_failed");
   }
 
   redirect("/admin/account?success=password_changed");
