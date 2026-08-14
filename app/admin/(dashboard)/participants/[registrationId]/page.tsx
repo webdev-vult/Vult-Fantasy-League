@@ -23,6 +23,7 @@ type RegistrationDetail = {
   rejection_reason: string | null;
   rules_version: number;
   registration_channel: string;
+  competition_season_id: string;
   participant: {
     id: string;
     full_name: string;
@@ -158,6 +159,7 @@ export default async function ParticipantDetailPage({
         rejection_reason,
         rules_version,
         registration_channel,
+        competition_season_id,
         participant:participants!registrations_participant_id_fkey(
           id, full_name, email, phone, whatsapp_phone, country, status, created_at
         ),
@@ -182,7 +184,7 @@ export default async function ParticipantDetailPage({
   if (!data) notFound();
 
   const registration = data as RegistrationDetail;
-  const [consentsResult, notesResult, historyResult, adminProfilesResult] = await Promise.all([
+  const [consentsResult, notesResult, historyResult, adminProfilesResult, ruleResult] = await Promise.all([
     db
       .from("participant_consents")
       .select("id, consent_type, document_version, accepted, accepted_at")
@@ -200,6 +202,12 @@ export default async function ParticipantDetailPage({
       .eq("registration_id", registrationId)
       .order("created_at", { ascending: false }),
     db.from("admin_profiles").select("id, full_name, role").eq("is_active", true),
+    db
+      .from("competition_rules")
+      .select("requires_vult_account")
+      .eq("competition_season_id", registration.competition_season_id)
+      .eq("version", registration.rules_version)
+      .maybeSingle(),
   ]);
 
   const consents = (consentsResult.data ?? []) as Consent[];
@@ -214,6 +222,7 @@ export default async function ParticipantDetailPage({
   const canVerify = ["super_admin", "competition_manager", "compliance_officer"].includes(admin.role);
   const canAddNotes = ["super_admin", "competition_manager", "compliance_officer", "support_officer"].includes(admin.role);
   const fplVerified = verification?.fpl_status === "verified" && Boolean(entry?.verified_at);
+  const requiresVultAccount = ruleResult.data?.requires_vult_account ?? true;
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -293,7 +302,7 @@ export default async function ParticipantDetailPage({
                   <input name="full_name" required defaultValue={participant.full_name} disabled={!canVerify} className={inputClass} />
                 </label>
                 <label>
-                  <span className={labelClass}>Vult phone number</span>
+                  <span className={labelClass}>{requiresVultAccount ? "Vult phone number" : "Phone number"}</span>
                   <input name="phone" required defaultValue={participant.phone} disabled={!canVerify} className={inputClass} />
                 </label>
                 <label>
@@ -368,42 +377,51 @@ export default async function ParticipantDetailPage({
 
           <section className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm sm:p-7">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">Vult verification</p>
-            <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Verify the Vult account by phone number</h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              Check the participant in the Vult system using the submitted Vult phone number. No separate customer reference is required.
-            </p>
-
-            <div className="mt-5 rounded-2xl bg-[#f7f8fc] p-4">
-              <p className={labelClass}>Vult phone number</p>
-              <p className="mt-2 text-lg font-black text-[var(--brand-strong)]">{participant?.phone ?? "Not available"}</p>
-            </div>
-
-            <form action={updateVultVerificationAction} className="mt-6 space-y-4">
-              <input type="hidden" name="registration_id" value={registration.id} />
-              <label className="block">
-                <span className={labelClass}>Vult status</span>
-                <select name="vult_status" defaultValue={verification?.vult_status ?? "pending"} disabled={!canVerify} className={inputClass}>
-                  {verificationStatuses.map((status) => <option key={status} value={status}>{label(status)}</option>)}
-                </select>
-              </label>
-              <label className="block">
-                <span className={labelClass}>Verification notes</span>
-                <textarea
-                  name="vult_notes"
-                  rows={4}
-                  placeholder="Optional account-verification notes"
-                  defaultValue={verification?.vult_notes ?? ""}
-                  disabled={!canVerify}
-                  className={inputClass}
-                />
-              </label>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-[var(--muted)]">
-                  Checked by {verification?.vult_checked_by ? adminNames.get(verification.vult_checked_by) ?? "an administrator" : "nobody yet"} · {formatDate(verification?.vult_checked_at ?? null)}
+            {requiresVultAccount ? (
+              <>
+                <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Verify the Vult account by phone number</h2>
+                <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                  Check the participant in the Vult system using the submitted Vult phone number. No separate customer reference is required.
                 </p>
-                {canVerify ? <button className="rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-black text-white">Save Vult verification</button> : null}
+
+                <div className="mt-5 rounded-2xl bg-[#f7f8fc] p-4">
+                  <p className={labelClass}>Vult phone number</p>
+                  <p className="mt-2 text-lg font-black text-[var(--brand-strong)]">{participant?.phone ?? "Not available"}</p>
+                </div>
+
+                <form action={updateVultVerificationAction} className="mt-6 space-y-4">
+                  <input type="hidden" name="registration_id" value={registration.id} />
+                  <label className="block">
+                    <span className={labelClass}>Vult status</span>
+                    <select name="vult_status" defaultValue={verification?.vult_status ?? "pending"} disabled={!canVerify} className={inputClass}>
+                      {verificationStatuses.map((status) => <option key={status} value={status}>{label(status)}</option>)}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className={labelClass}>Verification notes</span>
+                    <textarea
+                      name="vult_notes"
+                      rows={4}
+                      placeholder="Optional account-verification notes"
+                      defaultValue={verification?.vult_notes ?? ""}
+                      disabled={!canVerify}
+                      className={inputClass}
+                    />
+                  </label>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs text-[var(--muted)]">
+                      Checked by {verification?.vult_checked_by ? adminNames.get(verification.vult_checked_by) ?? "an administrator" : "nobody yet"} · {formatDate(verification?.vult_checked_at ?? null)}
+                    </p>
+                    {canVerify ? <button className="rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-black text-white">Save Vult verification</button> : null}
+                  </div>
+                </form>
+              </>
+            ) : (
+              <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-5 text-sm leading-6 text-green-900">
+                <h2 className="text-lg font-black">No Vult account verification required</h2>
+                <p className="mt-1">The participant accepted rules version {registration.rules_version}, which does not require a Vult account.</p>
               </div>
-            </form>
+            )}
           </section>
         </div>
 
@@ -442,7 +460,7 @@ export default async function ParticipantDetailPage({
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">Eligibility decision</p>
             <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Registration workflow</h2>
             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              FPL identity is verified automatically from the official league. Approval is available once the Vult phone number has been verified and duplicate risk is acceptable.
+              FPL identity is verified automatically from the official league. Approval is available once required checks are complete and duplicate risk is acceptable.
             </p>
             <form action={transitionRegistrationStatusAction} className="mt-6 space-y-4">
               <input type="hidden" name="registration_id" value={registration.id} />

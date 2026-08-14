@@ -33,7 +33,7 @@ const steps = [
   {
     title: "Complete eligibility review",
     description:
-      "Vult verifies the submitted Vult phone number against the Vult account system and checks FPL membership, duplicate risk, the published age declaration and any other eligibility or compliance requirements before approving a registration.",
+      "Vult checks FPL membership, duplicate risk, the published age declaration and other eligibility requirements. A Vult account is verified only when the published rules require one.",
   },
   {
     title: "Compete across the season",

@@ -56,6 +56,54 @@ function checked(formData: FormData, key: string) {
   return formData.get(key) === "on";
 }
 
+function ruleValues(formData: FormData) {
+  const weeklyChipPolicy = assertAllowed(
+    requiredText(formData, "weekly_chip_policy", "Weekly chip policy"),
+    CHIP_POLICIES,
+    "Weekly chip policy",
+  );
+  const eligibleCountryCodes = requiredText(
+    formData,
+    "eligible_country_codes",
+    "Eligible countries",
+  )
+    .split(",")
+    .map((value) => value.trim().toUpperCase())
+    .filter(Boolean);
+  const tieBreakers = requiredText(formData, "tie_breakers", "Tie-breakers")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const disqualificationRules = text(formData, "disqualification_rules")
+    .split("\n")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (!eligibleCountryCodes.length) {
+    throw new Error("At least one eligible country is required.");
+  }
+  if (!tieBreakers.length) {
+    throw new Error("At least one tie-breaker is required.");
+  }
+
+  return {
+    title: requiredText(formData, "title", "Rule title"),
+    minimum_age: integer(formData, "minimum_age", "Minimum age", 0),
+    eligible_country_codes: eligibleCountryCodes,
+    requires_vult_account: checked(formData, "requires_vult_account"),
+    one_entry_per_participant: checked(formData, "one_entry_per_participant"),
+    employees_eligible: checked(formData, "employees_eligible"),
+    weekly_chip_policy: weeklyChipPolicy,
+    include_transfer_deductions: checked(formData, "include_transfer_deductions"),
+    repeat_weekly_winners_allowed: checked(formData, "repeat_weekly_winners_allowed"),
+    dispute_window_hours: integer(formData, "dispute_window_hours", "Dispute window", 1),
+    tie_breakers: tieBreakers,
+    disqualification_rules: disqualificationRules,
+    notes: optionalText(formData, "notes"),
+    effective_at: optionalIsoDateTime(formData, "effective_at", "Effective date"),
+  };
+}
+
 function optionalIsoDateTime(formData: FormData, key: string, label: string) {
   const value = text(formData, key);
   if (!value) return null;
@@ -327,27 +375,6 @@ export async function createRuleVersionAction(formData: FormData) {
   const competitionSeasonId = requiredText(formData, "competition_season_id", "Competition season");
 
   try {
-    const chipPolicy = assertAllowed(
-      requiredText(formData, "weekly_chip_policy", "Weekly chip policy"),
-      CHIP_POLICIES,
-      "Weekly chip policy",
-    );
-    const countries = requiredText(formData, "eligible_country_codes", "Eligible countries")
-      .split(",")
-      .map((value) => value.trim().toUpperCase())
-      .filter(Boolean);
-    const tieBreakers = requiredText(formData, "tie_breakers", "Tie-breakers")
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
-    const disqualificationRules = text(formData, "disqualification_rules")
-      .split("\n")
-      .map((value) => value.trim())
-      .filter(Boolean);
-
-    if (!countries.length) throw new Error("At least one eligible country is required.");
-    if (!tieBreakers.length) throw new Error("At least one tie-breaker is required.");
-
     const supabase = await createServerSupabaseClient();
     const db = supabase as any;
     const { data: latest, error: latestError } = await db
@@ -365,20 +392,7 @@ export async function createRuleVersionAction(formData: FormData) {
       .insert({
         competition_season_id: competitionSeasonId,
         version,
-        title: requiredText(formData, "title", "Rule title"),
-        minimum_age: integer(formData, "minimum_age", "Minimum age", 0),
-        eligible_country_codes: countries,
-        requires_vult_account: checked(formData, "requires_vult_account"),
-        one_entry_per_participant: checked(formData, "one_entry_per_participant"),
-        employees_eligible: checked(formData, "employees_eligible"),
-        weekly_chip_policy: chipPolicy,
-        include_transfer_deductions: checked(formData, "include_transfer_deductions"),
-        repeat_weekly_winners_allowed: checked(formData, "repeat_weekly_winners_allowed"),
-        dispute_window_hours: integer(formData, "dispute_window_hours", "Dispute window", 1),
-        tie_breakers: tieBreakers,
-        disqualification_rules: disqualificationRules,
-        notes: optionalText(formData, "notes"),
-        effective_at: optionalIsoDateTime(formData, "effective_at", "Effective date"),
+        ...ruleValues(formData),
         created_by: admin.id,
       })
       .select("id, version, title, status")
@@ -402,6 +416,46 @@ export async function createRuleVersionAction(formData: FormData) {
   redirectWithMessage("success", "Draft rule version created successfully.", competitionSeasonId);
 }
 
+export async function updateDraftRuleVersionAction(formData: FormData) {
+  const admin = await requireAdminRole(MANAGEMENT_ROLES);
+  const competitionSeasonId = requiredText(formData, "competition_season_id", "Competition season");
+
+  try {
+    const ruleId = requiredText(formData, "rule_id", "Rule version");
+    const supabase = await createServerSupabaseClient();
+    const db = supabase as any;
+    const { data, error } = await db
+      .from("competition_rules")
+      .update(ruleValues(formData))
+      .eq("id", ruleId)
+      .eq("competition_season_id", competitionSeasonId)
+      .eq("status", "draft")
+      .select("id, version, title, status, requires_vult_account")
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!data) {
+      throw new Error("Only a draft rule version can be edited.");
+    }
+
+    await writeAuditLog(admin.id, "update_draft_rule_version", "competition_rule", data.id, {
+      version: data.version,
+      title: data.title,
+      status: data.status,
+      requires_vult_account: data.requires_vult_account,
+    });
+  } catch (error) {
+    redirectWithMessage(
+      "error",
+      error instanceof Error ? error.message : "Unable to update the draft rule version.",
+      competitionSeasonId,
+    );
+  }
+
+  refreshOperations();
+  redirectWithMessage("success", "Draft rule version updated successfully.", competitionSeasonId);
+}
+
 export async function publishRuleVersionAction(formData: FormData) {
   const admin = await requireAdminRole(MANAGEMENT_ROLES);
   const competitionSeasonId = requiredText(formData, "competition_season_id", "Competition season");
@@ -417,6 +471,9 @@ export async function publishRuleVersionAction(formData: FormData) {
       .eq("competition_season_id", competitionSeasonId)
       .single();
     if (ruleError || !rule) throw new Error(ruleError?.message ?? "Rule version not found.");
+    if (rule.status !== "draft") {
+      throw new Error("Only a draft rule version can be published.");
+    }
 
     const { error: supersedeError } = await db
       .from("competition_rules")
@@ -430,7 +487,8 @@ export async function publishRuleVersionAction(formData: FormData) {
     const { error: publishError } = await db
       .from("competition_rules")
       .update({ status: "published", published_at: publishedAt })
-      .eq("id", ruleId);
+      .eq("id", ruleId)
+      .eq("status", "draft");
     if (publishError) throw new Error(publishError.message);
 
     const { error: seasonError } = await db
@@ -454,6 +512,8 @@ export async function publishRuleVersionAction(formData: FormData) {
 
   refreshOperations();
   revalidatePath("/admin/competitions");
+  revalidatePath("/register");
+  revalidatePath("/rules");
   redirectWithMessage("success", "Rule version published successfully.", competitionSeasonId);
 }
 

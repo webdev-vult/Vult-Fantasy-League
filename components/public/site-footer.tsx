@@ -11,10 +11,8 @@ export function SiteFooter() {
         <div className="flex flex-wrap gap-4">
           <Link href="/leaderboards" className="font-bold hover:text-[var(--brand)]">Leaderboards</Link>
           <Link href="/announcements" className="font-bold hover:text-[var(--brand)]">Announcements</Link>
-          <Link href="/support" className="font-bold hover:text-[var(--brand)]">Support</Link>
           <Link href="/rules" className="font-bold hover:text-[var(--brand)]">Rules</Link>
           <Link href="/privacy" className="font-bold hover:text-[var(--brand)]">Privacy</Link>
-          <Link href="/admin/login" className="font-bold hover:text-[var(--brand)]">Admin</Link>
         </div>
       </div>
     </footer>
