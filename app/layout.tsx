@@ -14,11 +14,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Vult Fantasy Platform",
-    template: "%s | Vult Fantasy Platform",
+    default: "Vult EPL Fantasy League",
+    template: "%s | Vult EPL Fantasy League",
   },
   description:
-    "A multi-season fantasy competition platform for Vult participants, leaderboards, winners and prizes.",
+    "Build your official FPL team, join the Vult mini-league and compete across published weekly, monthly and overall standings.",
 };
 
 export default function RootLayout({
