@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import vultLogo from "@/components/public/vult-logo.svg";
 import { requireAdmin } from "@/lib/auth/admin";
 import { signOutAdmin } from "./actions";
 
@@ -54,11 +56,11 @@ export default async function AdminDashboardLayout({
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between px-5 py-5 lg:px-6 lg:py-7">
             <Link href="/admin" className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-sm font-black text-[#162a63]">
-                V
+              <span className="rounded-xl bg-white px-3 py-2 shadow-md shadow-black/10">
+                <Image src={vultLogo} alt="Vult" className="h-auto w-[104px]" priority />
               </span>
               <span>
-                <span className="block text-sm font-black">Vult Fantasy</span>
+                <span className="block text-sm font-black">EPL Fantasy</span>
                 <span className="block text-[11px] text-blue-200">Admin Portal</span>
               </span>
             </Link>
@@ -96,7 +98,7 @@ export default async function AdminDashboardLayout({
           <div className="mt-auto hidden border-t border-white/10 p-4 lg:block">
             <div className="rounded-2xl bg-white/5 p-4">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-black text-[#0e1d49]">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-black text-[var(--brand-strong)]">
                   {initials || "VA"}
                 </span>
                 <div className="min-w-0">
@@ -141,7 +143,7 @@ export default async function AdminDashboardLayout({
             <form action={signOutAdmin}>
               <button
                 type="submit"
-                className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-xs font-black text-[#162a63]"
+                className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-xs font-black text-[var(--brand)]"
               >
                 Sign out
               </button>
