@@ -1,15 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f7fb;
-  --foreground: #101828;
+  --background: #f7f8fd;
+  --foreground: #121536;
   --surface: #ffffff;
-  --surface-soft: #eef3ff;
-  --border: #d9e2f1;
+  --surface-soft: #eaf8fc;
+  --border: #dce2ef;
   --muted: #667085;
-  --brand: #162a63;
-  --brand-strong: #0e1d49;
-  --accent: #f4b740;
+  --brand: #121536;
+  --brand-strong: #080a20;
+  --accent: #75c9e3;
+  --accent-strong: #58bedc;
+  --accent-dark: #167f9f;
 }
 
 @layer base {
@@ -31,7 +33,7 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at top right, rgba(70, 101, 184, 0.14), transparent 34rem),
+    radial-gradient(circle at top right, rgba(117, 201, 227, 0.15), transparent 34rem),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
@@ -45,5 +47,9 @@ textarea {
 }
 
 ::selection {
-  background: rgba(244, 183, 64, 0.35);
+  background: rgba(117, 201, 227, 0.45);
+}
+
+summary::-webkit-details-marker {
+  display: none;
 }

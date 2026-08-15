@@ -1,5 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import vultLogo from "@/components/public/vult-logo.svg";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { signInAdmin } from "./actions";
 
@@ -41,11 +43,11 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
     <main className="grid min-h-screen lg:grid-cols-[0.9fr_1.1fr]">
       <section className="hidden bg-[var(--brand-strong)] p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <Link href="/" className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-sm font-black tracking-[0.14em] text-[var(--brand)]">
-            V
+          <span className="rounded-2xl bg-white px-4 py-2.5 shadow-lg shadow-black/10">
+            <Image src={vultLogo} alt="Vult" className="h-auto w-[126px]" priority />
           </span>
           <span>
-            <span className="block text-sm font-black">Vult Fantasy</span>
+            <span className="block text-sm font-black">EPL Fantasy</span>
             <span className="block text-xs text-blue-200">Administration Portal</span>
           </span>
         </Link>
@@ -62,16 +64,19 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
           </p>
         </div>
 
-        <p className="text-xs text-blue-200">Vult Fantasy Platform</p>
+        <p className="text-xs text-blue-200">Vult EPL Fantasy League · Staff portal</p>
       </section>
 
       <section className="flex items-center justify-center px-6 py-12 sm:px-10">
         <div className="w-full max-w-md">
           <Link href="/" className="mb-10 flex items-center gap-3 lg:hidden">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand)] text-sm font-black text-white">
-              V
+            <span className="rounded-xl bg-white py-1">
+              <Image src={vultLogo} alt="Vult" className="h-auto w-[116px]" priority />
             </span>
-            <span className="font-black text-[var(--brand)]">Vult Fantasy</span>
+            <span>
+              <span className="block text-sm font-black text-[var(--brand-strong)]">EPL Fantasy</span>
+              <span className="block text-[11px] text-[var(--muted)]">Admin Portal</span>
+            </span>
           </Link>
 
           <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--brand)]">

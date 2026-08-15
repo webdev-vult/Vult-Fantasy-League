@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 function remaining(target: string) {
   const difference = Math.max(0, new Date(target).getTime() - Date.now());
@@ -32,25 +32,43 @@ export function GameweekCountdown({
   target: string | null;
   gameweekName: string;
 }) {
-  const initial = useMemo(() => (target ? remaining(target) : null), [target]);
-  const [time, setTime] = useState(initial);
+  const [time, setTime] = useState<ReturnType<typeof remaining> | null>(null);
 
   useEffect(() => {
-    if (!target) {
-      setTime(null);
-      return;
-    }
+    if (!target) return;
 
-    setTime(remaining(target));
-    const timer = window.setInterval(() => setTime(remaining(target)), 1_000);
-    return () => window.clearInterval(timer);
+    const update = () => setTime(remaining(target));
+    const initialTimer = window.setTimeout(update, 0);
+    const intervalTimer = window.setInterval(update, 1_000);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(intervalTimer);
+    };
   }, [target]);
 
-  if (!target || !time) {
+  if (!target) {
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
         <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-200">{gameweekName}</p>
         <p className="mt-2 text-2xl font-black text-white">FPL deadline temporarily unavailable.</p>
+      </div>
+    );
+  }
+
+  if (!time) {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-200">Countdown to {gameweekName}</p>
+        <p className="mt-2 text-sm font-bold text-white">{formatDeadline(target)} · Sierra Leone time</p>
+        <div className="mt-5 grid grid-cols-4 gap-2" aria-label="Loading countdown">
+          {["Days", "Hours", "Minutes", "Seconds"].map((label) => (
+            <div key={label} className="rounded-2xl bg-white/10 px-2 py-4 text-center">
+              <p className="text-2xl font-black tabular-nums text-white">--</p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.08em] text-blue-200">{label}</p>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
