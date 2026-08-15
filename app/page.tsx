@@ -95,8 +95,8 @@ export default async function Home() {
 
       <section className="relative isolate min-h-[720px] overflow-hidden bg-[var(--brand-strong)] text-white">
         <Image
-          src="/images/vult-fantasy-hero.webp"
-          alt="Three fictional footballers in a floodlit stadium"
+          src="/images/vult-fantasy-real-players-hero.webp"
+          alt="Bukayo Saka, Erling Haaland and Cole Palmer in a floodlit stadium"
           fill
           priority
           sizes="100vw"
