@@ -119,7 +119,7 @@ export default async function Home() {
             <p className="mt-9 text-sm font-black uppercase tracking-[0.22em] text-[var(--accent)]">
               Your fantasy. Your strategy. Your glory.
             </p>
-            <h1 className="mt-5 max-w-3xl text-5xl font-black leading-[0.96] tracking-[-0.06em] sm:text-7xl xl:text-[5.7rem]">
+            <h1 className="mt-5 max-w-3xl text-5xl font-black leading-[0.96] tracking-[-0.06em] sm:text-7xl xl:text-[5.1rem]">
               Build your team. Make your moves. <span className="text-[var(--accent)]">Win the season.</span>
             </h1>
             <p className="mt-7 max-w-2xl text-base leading-8 text-blue-100 sm:text-lg">
