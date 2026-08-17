@@ -95,7 +95,7 @@ export default async function Home() {
 
       <section className="relative isolate min-h-[720px] overflow-hidden bg-[var(--brand-strong)] text-white">
         <Image
-          src="/images/vult-fantasy-real-players-hero.webp"
+          src="/images/vult-fantasy-real-players-hero.jpeg"
           alt="Bukayo Saka, Erling Haaland and Cole Palmer in a floodlit stadium"
           fill
           priority
@@ -116,9 +116,6 @@ export default async function Home() {
               </span>
             </div>
 
-            <p className="mt-9 text-sm font-black uppercase tracking-[0.22em] text-[var(--accent)]">
-              Your fantasy. Your strategy. Your glory.
-            </p>
             <h1 className="mt-5 max-w-3xl text-5xl font-black leading-[0.96] tracking-[-0.06em] sm:text-7xl xl:text-[5.1rem]">
               Build your team. Make your moves. <span className="text-[var(--accent)]">Win the season.</span>
             </h1>
