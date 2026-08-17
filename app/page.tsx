@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { HeroImage } from "@/components/public/hero-image";
 import { GameweekCountdown } from "@/components/public/gameweek-countdown";
 import { SiteFooter } from "@/components/public/site-footer";
 import { SiteHeader } from "@/components/public/site-header";
@@ -94,14 +94,7 @@ export default async function Home() {
       <SiteHeader registrationOpen={competition.registrationOpen} />
 
       <section className="relative isolate min-h-[720px] overflow-hidden bg-[var(--brand-strong)] text-white">
-        <Image
-          src="/images/vult-fantasy-real-players-hero.jpeg"
-          alt="Bukayo Saka, Erling Haaland and Cole Palmer in a floodlit stadium"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-[66%_center]"
-        />
+        <HeroImage />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,#080a20_0%,rgba(8,10,32,0.98)_28%,rgba(8,10,32,0.72)_54%,rgba(8,10,32,0.1)_100%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(117,201,227,0.2),transparent_30%)]" />
 

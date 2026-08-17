@@ -57,7 +57,7 @@ export default async function AdminDashboardLayout({
           <div className="flex items-center justify-between px-5 py-5 lg:px-6 lg:py-7">
             <Link href="/admin" className="flex items-center gap-3">
               <span className="rounded-xl bg-white px-3 py-2 shadow-md shadow-black/10">
-                <Image src={vultLogo} alt="Vult" className="h-auto w-[104px]" priority />
+                <Image src={vultLogo} alt="Vult" className="h-auto w-[90px]" priority />
               </span>
               <span>
                 <span className="block text-sm font-black">EPL Fantasy</span>

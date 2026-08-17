@@ -44,7 +44,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
       <section className="hidden bg-[var(--brand-strong)] p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <Link href="/" className="flex items-center gap-3">
           <span className="rounded-2xl bg-white px-4 py-2.5 shadow-lg shadow-black/10">
-            <Image src={vultLogo} alt="Vult" className="h-auto w-[126px]" priority />
+            <Image src={vultLogo} alt="Vult" className="h-auto w-[108px]" priority />
           </span>
           <span>
             <span className="block text-sm font-black">EPL Fantasy</span>
@@ -71,7 +71,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
         <div className="w-full max-w-md">
           <Link href="/" className="mb-10 flex items-center gap-3 lg:hidden">
             <span className="rounded-xl bg-white py-1">
-              <Image src={vultLogo} alt="Vult" className="h-auto w-[116px]" priority />
+              <Image src={vultLogo} alt="Vult" className="h-auto w-[98px]" priority />
             </span>
             <span>
               <span className="block text-sm font-black text-[var(--brand-strong)]">EPL Fantasy</span>
