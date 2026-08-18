@@ -10,7 +10,7 @@ export function HeroImage() {
   const [source, setSource] = useState(primaryHero);
 
   return (
-    <div className="absolute inset-x-0 top-96 h-[430px] sm:inset-0 sm:h-auto">
+    <div className="absolute inset-x-0 top-72 h-[430px] sm:inset-0 sm:h-auto">
       <Image
         src={source}
         alt="Premier League players in a floodlit stadium"
