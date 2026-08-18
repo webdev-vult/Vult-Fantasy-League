@@ -95,7 +95,7 @@ export default async function Home() {
 
       <section className="relative isolate min-h-[720px] overflow-hidden bg-[var(--brand-strong)] text-white">
         <HeroImage />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,#080a20_0%,rgba(8,10,32,0.98)_28%,rgba(8,10,32,0.72)_54%,rgba(8,10,32,0.1)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,10,32,0.86)_0%,rgba(8,10,32,0.78)_48%,rgba(8,10,32,0.32)_100%)] sm:bg-[linear-gradient(90deg,#080a20_0%,rgba(8,10,32,0.98)_28%,rgba(8,10,32,0.72)_54%,rgba(8,10,32,0.1)_100%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(117,201,227,0.2),transparent_30%)]" />
 
         <div className="relative mx-auto flex min-h-[720px] w-full max-w-7xl flex-col justify-between px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
