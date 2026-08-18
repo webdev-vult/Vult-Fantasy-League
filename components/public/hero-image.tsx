@@ -16,7 +16,7 @@ export function HeroImage() {
       fill
       priority
       sizes="100vw"
-      className="object-cover object-[66%_center]"
+      className="object-cover object-right sm:object-[66%_center]"
       onError={() => {
         if (source !== fallbackHero) setSource(fallbackHero);
       }}
