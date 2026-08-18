@@ -93,16 +93,13 @@ export default async function Home() {
     <main className="min-h-screen bg-[#f7f8fd]">
       <SiteHeader registrationOpen={competition.registrationOpen} />
 
-      <section className="relative isolate flex flex-col overflow-hidden bg-[var(--brand-strong)] text-white sm:block sm:min-h-[720px]">
-        <div className="relative order-2 h-[340px] overflow-hidden sm:absolute sm:inset-0 sm:h-auto">
-          <HeroImage />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,#080a20_0%,rgba(8,10,32,0.04)_22%,rgba(8,10,32,0.08)_72%,#080a20_100%)] sm:hidden" />
-        </div>
-        <div className="absolute inset-0 hidden bg-[linear-gradient(90deg,#080a20_0%,rgba(8,10,32,0.98)_28%,rgba(8,10,32,0.72)_54%,rgba(8,10,32,0.1)_100%)] sm:block" />
+      <section className="relative isolate min-h-[720px] overflow-hidden bg-[var(--brand-strong)] text-white">
+        <HeroImage />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,#080a20_0%,rgba(8,10,32,0.96)_48%,rgba(8,10,32,0.38)_100%)] sm:bg-[linear-gradient(90deg,#080a20_0%,rgba(8,10,32,0.98)_28%,rgba(8,10,32,0.72)_54%,rgba(8,10,32,0.1)_100%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(117,201,227,0.2),transparent_30%)]" />
 
-        <div className="contents sm:relative sm:mx-auto sm:flex sm:min-h-[720px] sm:w-full sm:max-w-7xl sm:flex-col sm:justify-between sm:px-8 sm:py-14 lg:px-10 lg:py-20">
-          <div className="order-1 max-w-3xl px-5 pb-9 pt-10 sm:px-0 sm:py-0">
+        <div className="relative mx-auto flex min-h-[720px] w-full max-w-7xl flex-col justify-between px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
+          <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-3">
               <span className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-blue-100 backdrop-blur">
                 Vult EPL Fantasy League
@@ -112,23 +109,23 @@ export default async function Home() {
               </span>
             </div>
 
-            <h1 className="mt-5 max-w-3xl text-[2.55rem] font-black leading-[0.96] tracking-[-0.055em] sm:text-7xl sm:tracking-[-0.06em] xl:text-[5.1rem]">
+            <h1 className="mt-5 max-w-3xl text-5xl font-black leading-[0.96] tracking-[-0.06em] sm:text-7xl xl:text-[5.1rem]">
               Build your team. Make your moves. <span className="text-[var(--accent)]">Win the season.</span>
             </h1>
-            <p className="mt-6 max-w-2xl text-[0.95rem] leading-7 text-blue-100 sm:mt-7 sm:text-lg sm:leading-8">
+            <p className="mt-7 max-w-2xl text-base leading-8 text-blue-100 sm:text-lg">
               Create your official FPL team, join the Vult mini-league, register your entry and compete across weekly, monthly and overall rankings.
             </p>
-            <div className="mt-8 grid gap-3 sm:mt-9 sm:flex sm:flex-wrap">
-              <Link href="/register" className="flex justify-center rounded-full bg-[var(--accent)] px-7 py-4 text-sm font-black text-[var(--brand-strong)] shadow-2xl shadow-cyan-950/30 transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)]">
+            <div className="mt-9 flex flex-wrap gap-3">
+              <Link href="/register" className="rounded-full bg-[var(--accent)] px-7 py-4 text-sm font-black text-[var(--brand-strong)] shadow-2xl shadow-cyan-950/30 transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)]">
                 {competition.registrationOpen ? "Register your team" : "View registration"}
               </Link>
-              <Link href="/leaderboards" className="flex justify-center rounded-full border border-white/30 bg-white/10 px-7 py-4 text-sm font-black text-white backdrop-blur transition hover:bg-white/20">
+              <Link href="/leaderboards" className="rounded-full border border-white/30 bg-white/10 px-7 py-4 text-sm font-black text-white backdrop-blur transition hover:bg-white/20">
                 View leaderboard
               </Link>
             </div>
           </div>
 
-          <dl className="order-3 grid gap-3 px-5 pb-10 pt-7 sm:mt-14 sm:max-w-4xl sm:grid-cols-3 sm:px-0 sm:py-0">
+          <dl className="mt-14 grid max-w-4xl gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/15 bg-[#0d1030]/75 p-4 backdrop-blur">
               <dt className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-200">Competition</dt>
               <dd className="mt-2 text-lg font-black">{humanizeStatus(competition.status)}</dd>
