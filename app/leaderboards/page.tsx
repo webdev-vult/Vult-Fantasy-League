@@ -231,7 +231,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
                           <td className={`px-6 py-5 text-sm font-black ${move.className}`}>{move.label}</td>
                           <td className="px-6 py-5 text-sm font-bold text-[var(--muted)]">{row.gameweeks_counted}</td>
                           <td className="px-6 py-5 text-2xl font-black text-[var(--brand-strong)]">{row.points}</td>
-                          <td className="px-6 py-5"><div className="flex flex-wrap gap-2">{row.is_tied ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">Tied on points</span> : null}{selectedScope === "round" && !row.weekly_eligible ? <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800">Not prize eligible</span> : <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-800">Eligible</span>}{row.chip_used ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-800">{row.chip_used}</span> : null}</div></td>
+                          <td className="px-6 py-5"><div className="flex flex-wrap gap-2">{row.is_tied ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">Ordered by point arrival</span> : null}<span className="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-800">Eligible</span>{row.chip_used ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-800">{row.chip_used}</span> : null}</div></td>
                         </tr>
                       );
                     })}
