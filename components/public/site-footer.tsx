@@ -1,13 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import vultLogo from "./vult-logo.svg";
+import vultLogo from "./vult-logo-white.svg";
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-white/10 bg-[var(--brand-strong)] text-white">
       <div className="mx-auto grid w-full max-w-7xl gap-9 px-5 py-12 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end lg:px-10">
         <div className="max-w-md">
-          <div className="w-fit rounded-2xl bg-white px-4 py-2">
+          <div>
             <Image src={vultLogo} alt="Vult" className="h-auto w-[84px]" />
           </div>
           <p className="mt-5 text-lg font-black">Play fantasy. Compete all season. Win with Vult.</p>
