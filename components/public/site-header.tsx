@@ -17,7 +17,7 @@ export function SiteHeader({ registrationOpen = false }: { registrationOpen?: bo
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-white/95 shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex min-h-20 w-full max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
         <Link href="/" className="flex shrink-0 items-center gap-3" aria-label="Vult Fantasy home">
-          <Image src={vultLogo} alt="Vult" className="h-auto w-[106px] sm:w-[118px]" priority />
+          <Image src={vultLogo} alt="Vult" className="h-auto w-[50px] sm:w-[118px]" priority />
           <span className="hidden border-l border-[var(--border)] pl-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)] sm:block">
             EPL Fantasy
           </span>
