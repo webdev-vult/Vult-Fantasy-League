@@ -20,7 +20,6 @@ const ROUND_STATUSES = [
 const PERIOD_STATUSES = ["draft", "active", "completed", "locked"] as const;
 const PRIZE_FREQUENCIES = ["weekly", "monthly", "overall", "special"] as const;
 const PRIZE_TYPES = ["cash", "non_cash", "mixed"] as const;
-const CHIP_POLICIES = ["allow_all", "exclude_score_affecting_chips"] as const;
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -57,11 +56,6 @@ function checked(formData: FormData, key: string) {
 }
 
 function ruleValues(formData: FormData) {
-  const weeklyChipPolicy = assertAllowed(
-    requiredText(formData, "weekly_chip_policy", "Weekly chip policy"),
-    CHIP_POLICIES,
-    "Weekly chip policy",
-  );
   const eligibleCountryCodes = requiredText(
     formData,
     "eligible_country_codes",
@@ -69,10 +63,6 @@ function ruleValues(formData: FormData) {
   )
     .split(",")
     .map((value) => value.trim().toUpperCase())
-    .filter(Boolean);
-  const tieBreakers = requiredText(formData, "tie_breakers", "Tie-breakers")
-    .split(",")
-    .map((value) => value.trim())
     .filter(Boolean);
   const disqualificationRules = text(formData, "disqualification_rules")
     .split("\n")
@@ -82,10 +72,6 @@ function ruleValues(formData: FormData) {
   if (!eligibleCountryCodes.length) {
     throw new Error("At least one eligible country is required.");
   }
-  if (!tieBreakers.length) {
-    throw new Error("At least one tie-breaker is required.");
-  }
-
   return {
     title: requiredText(formData, "title", "Rule title"),
     minimum_age: integer(formData, "minimum_age", "Minimum age", 0),
@@ -93,11 +79,11 @@ function ruleValues(formData: FormData) {
     requires_vult_account: checked(formData, "requires_vult_account"),
     one_entry_per_participant: checked(formData, "one_entry_per_participant"),
     employees_eligible: checked(formData, "employees_eligible"),
-    weekly_chip_policy: weeklyChipPolicy,
-    include_transfer_deductions: checked(formData, "include_transfer_deductions"),
+    weekly_chip_policy: "allow_all",
+    include_transfer_deductions: false,
     repeat_weekly_winners_allowed: checked(formData, "repeat_weekly_winners_allowed"),
     dispute_window_hours: integer(formData, "dispute_window_hours", "Dispute window", 1),
-    tie_breakers: tieBreakers,
+    tie_breakers: ["points_arrival"],
     disqualification_rules: disqualificationRules,
     notes: optionalText(formData, "notes"),
     effective_at: optionalIsoDateTime(formData, "effective_at", "Effective date"),
