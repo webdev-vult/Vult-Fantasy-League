@@ -72,11 +72,21 @@ function ruleValues(formData: FormData) {
   if (!eligibleCountryCodes.length) {
     throw new Error("At least one eligible country is required.");
   }
+  const minimumVultKycLevel = integer(
+    formData,
+    "minimum_vult_kyc_level",
+    "Minimum Vult KYC level",
+    1,
+  );
+  if (minimumVultKycLevel > 3) {
+    throw new Error("Minimum Vult KYC level cannot be greater than 3.");
+  }
   return {
     title: requiredText(formData, "title", "Rule title"),
-    minimum_age: integer(formData, "minimum_age", "Minimum age", 0),
+    minimum_age: 0,
+    minimum_vult_kyc_level: minimumVultKycLevel,
     eligible_country_codes: eligibleCountryCodes,
-    requires_vult_account: checked(formData, "requires_vult_account"),
+    requires_vult_account: false,
     one_entry_per_participant: checked(formData, "one_entry_per_participant"),
     employees_eligible: checked(formData, "employees_eligible"),
     weekly_chip_policy: "allow_all",
@@ -416,7 +426,7 @@ export async function updateDraftRuleVersionAction(formData: FormData) {
       .eq("id", ruleId)
       .eq("competition_season_id", competitionSeasonId)
       .eq("status", "draft")
-      .select("id, version, title, status, requires_vult_account")
+      .select("id, version, title, status, minimum_vult_kyc_level")
       .maybeSingle();
 
     if (error) throw new Error(error.message);
@@ -428,7 +438,7 @@ export async function updateDraftRuleVersionAction(formData: FormData) {
       version: data.version,
       title: data.title,
       status: data.status,
-      requires_vult_account: data.requires_vult_account,
+      minimum_vult_kyc_level: data.minimum_vult_kyc_level,
     });
   } catch (error) {
     redirectWithMessage(

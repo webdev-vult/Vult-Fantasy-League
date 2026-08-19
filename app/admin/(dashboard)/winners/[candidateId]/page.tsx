@@ -162,9 +162,12 @@ export default async function WinnerCandidatePage({
     ]);
 
   const registration = registrationResult.data as any;
-  const [participantResult, evaluationsResult] = await Promise.all([
+  const [participantResult, verificationResult, evaluationsResult] = await Promise.all([
     registration?.participant_id
-      ? db.from("participants").select("id, full_name, email, phone, whatsapp_phone, date_of_birth, country, city, vult_customer_ref, status").eq("id", registration.participant_id).maybeSingle()
+      ? db.from("participants").select("id, full_name, email, phone, whatsapp_phone, country, city, status").eq("id", registration.participant_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    registration?.id
+      ? db.from("registration_verifications").select("vult_status, vult_kyc_level, vult_checked_at").eq("registration_id", registration.id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
     candidate.generation_run_id
       ? db.from("winner_generation_evaluations").select("id, source_rank, score, provider_total_points, transfer_cost, gameweeks_counted, provider_entry_id, display_name, team_name, eligibility_status, tie_break_values, selection_order, selected_candidate_id").eq("generation_run_id", candidate.generation_run_id).order("selection_order", { ascending: true, nullsFirst: false }).limit(100)
@@ -176,6 +179,7 @@ export default async function WinnerCandidatePage({
   const evaluations = (evaluationsResult.data ?? []) as EvaluationRow[];
   const run = runResult.data as any;
   const participant = participantResult.data as any;
+  const verification = verificationResult.data as any;
   const season = seasonResult.data as any;
   const prize = prizeResult.data as any;
   const round = roundResult.data as any;
@@ -281,9 +285,10 @@ export default async function WinnerCandidatePage({
               ["Email", participant?.email ?? "—"],
               ["Phone", participant?.phone ?? "—"],
               ["WhatsApp", participant?.whatsapp_phone ?? "—"],
-              ["Date of birth", participant?.date_of_birth ?? "—"],
               ["Country / city", [participant?.country, participant?.city].filter(Boolean).join(" · ") || "—"],
-              ["Vult reference", participant?.vult_customer_ref ?? "—"],
+              ["Vult account", label(verification?.vult_status)],
+              ["Vult KYC level", `Level ${verification?.vult_kyc_level ?? 0}`],
+              ["KYC last checked", formatDate(verification?.vult_checked_at)],
               ["Profile status", label(participant?.status)],
             ].map(([name, value]) => (
               <div key={String(name)} className="flex flex-col gap-1 border-b border-[var(--border)] pb-3 sm:flex-row sm:justify-between sm:gap-5">

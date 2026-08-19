@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
       ...breakdownRows("Registration status", dashboard.registration_statuses),
       ...breakdownRows("Eligibility status", dashboard.eligibility_statuses),
       ...breakdownRows("FPL verification", dashboard.verification_statuses.fpl),
-      ...breakdownRows("Vult verification", dashboard.verification_statuses.vult),
+      ...breakdownRows("Vult KYC checks", dashboard.verification_statuses.vult),
       ...breakdownRows("Duplicate risk", dashboard.verification_statuses.duplicate_risk),
       ...breakdownRows("Provider runs", dashboard.provider_runs),
       ...breakdownRows("Round status", dashboard.round_statuses),

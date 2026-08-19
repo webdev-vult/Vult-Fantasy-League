@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const sections = [
   {
     title: "Information provided during registration",
-    body: "Registration may collect your legal name, phone number, WhatsApp number, email address, country, exact FPL Team name, exact FPL Manager name, age-eligibility declaration and consent choices. The fields shown on the current registration form determine what you are asked to provide.",
+    body: "Registration may collect your legal name, phone number, WhatsApp number, email address, country, exact FPL Team name, exact FPL Manager name and consent choices. The fields shown on the current registration form determine what you are asked to provide.",
   },
   {
     title: "Information resolved or created by the platform",
@@ -19,7 +19,7 @@ const sections = [
   },
   {
     title: "Later verification and prize information",
-    body: "Additional information may be recorded later when it is required for eligibility, compliance, winner review or prize settlement. This can include age-verification evidence, Vult account verification when required by the accepted competition rules, payment transaction references, payment evidence and administrative review notes. These items are not necessarily collected from every participant at initial registration.",
+    body: "Additional information may be recorded later when it is required for compliance, winner review or prize settlement. This can include the Vult account check, recorded KYC level, payment transaction references, payment evidence and administrative review notes. KYC is checked only when needed for winner and prize processing, not as a condition for playing.",
   },
   {
     title: "Why the information is used",
@@ -50,7 +50,7 @@ export default async function PrivacyPage() {
     <main className="min-h-screen bg-[#f4f6fb]">
       <SiteHeader registrationOpen={competition.registrationOpen} />
       <section className="mx-auto w-full max-w-5xl px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--brand)]">Privacy notice · Version 1.1</p>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--brand)]">Privacy notice · Version 1.2</p>
         <h1 className="mt-4 text-4xl font-black tracking-[-0.05em] text-[var(--brand-strong)] sm:text-6xl">
           How the Vult Fantasy Platform uses participant information.
         </h1>

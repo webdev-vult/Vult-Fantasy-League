@@ -35,7 +35,6 @@ type ParticipantRow = {
     phone: string;
     city: string | null;
     country: string;
-    vult_customer_ref: string | null;
     status: string;
   } | null;
   fantasy_entry: {
@@ -47,6 +46,7 @@ type ParticipantRow = {
   verification: {
     fpl_status: string;
     vult_status: string;
+    vult_kyc_level: number;
     duplicate_risk: string;
     duplicate_checked_at: string | null;
   } | null;
@@ -169,13 +169,13 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
       registration_channel,
       competition_season_id,
       participant:participants!registrations_participant_id_fkey(
-        id, full_name, email, phone, city, country, vult_customer_ref, status
+        id, full_name, email, phone, city, country, status
       ),
       fantasy_entry:fantasy_entries(
         provider_entry_id, manager_name, team_name, verified_at
       ),
       verification:registration_verifications${verificationJoin}(
-        fpl_status, vult_status, duplicate_risk, duplicate_checked_at
+        fpl_status, vult_status, vult_kyc_level, duplicate_risk, duplicate_checked_at
       ),
       competition_season:competition_seasons!registrations_competition_season_id_fkey(
         id, name, status
@@ -396,7 +396,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                             FPL {label(verification?.fpl_status ?? "pending")}
                           </span>
                           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase ${badgeClasses(verification?.vult_status ?? "pending")}`}>
-                            Vult {label(verification?.vult_status ?? "pending")}
+                            Vult {label(verification?.vult_status ?? "pending")} · KYC {verification?.vult_kyc_level ?? 0}
                           </span>
                           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase ${badgeClasses(verification?.duplicate_risk ?? "none")}`}>
                             Risk {label(verification?.duplicate_risk ?? "none")}

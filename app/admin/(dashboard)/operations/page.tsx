@@ -51,9 +51,8 @@ type CompetitionRule = {
   version: number;
   title: string;
   status: string;
-  minimum_age: number;
+  minimum_vult_kyc_level: number;
   eligible_country_codes: string[];
-  requires_vult_account: boolean;
   one_entry_per_participant: boolean;
   employees_eligible: boolean;
   weekly_chip_policy: string;
@@ -138,8 +137,8 @@ function RuleFormFields({
         <input name="title" required defaultValue={rule?.title ?? defaultTitle} className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
       </label>
       <label className="text-xs font-bold text-[var(--muted)]">
-        Minimum age
-        <input name="minimum_age" type="number" min="0" defaultValue={rule?.minimum_age ?? 18} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
+        Minimum Vult KYC level for prizes
+        <input name="minimum_vult_kyc_level" type="number" min="1" max="3" defaultValue={rule?.minimum_vult_kyc_level ?? 1} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
       </label>
       <label className="text-xs font-bold text-[var(--muted)]">
         Eligible country codes
@@ -162,7 +161,7 @@ function RuleFormFields({
         <textarea name="disqualification_rules" rows={3} defaultValue={stringList(rule?.disqualification_rules).join("\n")} placeholder="Duplicate entry&#10;False identity information" className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
       </label>
       <div className="grid gap-2 text-xs font-bold text-[var(--brand-strong)] sm:col-span-2 sm:grid-cols-2">
-        <label className="flex items-center gap-2"><input name="requires_vult_account" type="checkbox" defaultChecked={rule?.requires_vult_account ?? true} /> Require a Vult account</label>
+        <p className="rounded-lg bg-[var(--surface-soft)] px-3 py-2 text-[var(--muted)]"><strong className="text-[var(--brand-strong)]">Entry:</strong> no age limit and no Vult account required to play.</p>
         <label className="flex items-center gap-2"><input name="one_entry_per_participant" type="checkbox" defaultChecked={rule?.one_entry_per_participant ?? true} /> One entry per participant</label>
         <p className="rounded-lg bg-[var(--surface-soft)] px-3 py-2 text-[var(--muted)]"><strong className="text-[var(--brand-strong)]">Transfers:</strong> costs are displayed but never deducted from ranking points.</p>
         <label className="flex items-center gap-2"><input name="repeat_weekly_winners_allowed" type="checkbox" defaultChecked={rule?.repeat_weekly_winners_allowed ?? true} /> Allow repeat weekly winners</label>
@@ -220,7 +219,7 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
       db
         .from("competition_rules")
         .select(
-          "id, version, title, status, minimum_age, eligible_country_codes, requires_vult_account, one_entry_per_participant, employees_eligible, weekly_chip_policy, include_transfer_deductions, repeat_weekly_winners_allowed, dispute_window_hours, tie_breakers, disqualification_rules, notes, effective_at, published_at",
+          "id, version, title, status, minimum_vult_kyc_level, eligible_country_codes, one_entry_per_participant, employees_eligible, weekly_chip_policy, include_transfer_deductions, repeat_weekly_winners_allowed, dispute_window_hours, tie_breakers, disqualification_rules, notes, effective_at, published_at",
         )
         .eq("competition_season_id", selectedSeasonId)
         .order("version", { ascending: false }),
@@ -507,7 +506,7 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="font-black text-[var(--brand-strong)]">v{rule.version} — {rule.title}</p>
-                          <p className="mt-1 text-xs text-[var(--muted)]">Minimum age {rule.minimum_age} • Dispute window {rule.dispute_window_hours} hours</p>
+                          <p className="mt-1 text-xs text-[var(--muted)]">KYC Level {rule.minimum_vult_kyc_level}+ required for prizes • Dispute window {rule.dispute_window_hours} hours</p>
                         </div>
                         <div className="flex flex-wrap justify-end gap-2">
                           {rule.version === selectedSeason.rules_version ? (
@@ -521,7 +520,8 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                       <p><strong className="text-[var(--brand-strong)]">Countries:</strong> {rule.eligible_country_codes.join(", ")}</p>
                       <p><strong className="text-[var(--brand-strong)]">Chip usage:</strong> Recorded only</p>
                       <p><strong className="text-[var(--brand-strong)]">Transfer costs:</strong> Recorded only</p>
-                      <p><strong className="text-[var(--brand-strong)]">Vult required:</strong> {rule.requires_vult_account ? "Yes" : "No"}</p>
+                      <p><strong className="text-[var(--brand-strong)]">Vult account to play:</strong> No</p>
+                      <p><strong className="text-[var(--brand-strong)]">Prize KYC:</strong> Level {rule.minimum_vult_kyc_level} or higher</p>
                       <p><strong className="text-[var(--brand-strong)]">Employees eligible:</strong> {rule.employees_eligible ? "Yes" : "No"}</p>
                       <p className="sm:col-span-2"><strong className="text-[var(--brand-strong)]">Tie-breaker:</strong> Point arrival order</p>
                     </div>

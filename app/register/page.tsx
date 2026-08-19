@@ -50,10 +50,6 @@ export default async function RegisterPage() {
               <dd className="mt-1 font-black">{formatPublicDate(competition.registrationClosesAt)}</dd>
             </div>
             <div>
-              <dt className="text-blue-200">Minimum age</dt>
-              <dd className="mt-1 font-black">{rules?.minimum_age ?? 18} years</dd>
-            </div>
-            <div>
               <dt className="text-blue-200">Official league</dt>
               <dd className="mt-1 font-black">{leagueName}</dd>
             </div>
@@ -70,7 +66,7 @@ export default async function RegisterPage() {
           </dl>
 
           <div className="mt-8 rounded-2xl bg-white/10 p-4 text-xs leading-6 text-blue-100">
-            Registration does not guarantee eligibility. Vult will resolve and store your numeric FPL Entry ID from the configured official league, check duplicates and review rule compliance before approval.
+            There is no age limit to play. Vult will resolve your numeric FPL Entry ID and check duplicates before approval. KYC Level 1 is checked only if you are selected for a weekly, monthly or overall prize.
           </div>
         </aside>
 
@@ -78,8 +74,6 @@ export default async function RegisterPage() {
           <RegistrationForm
             competitionSlug={competition.slug}
             registrationOpen={registrationOpen}
-            minimumAge={rules?.minimum_age ?? 18}
-            requiresVultAccount={rules?.requires_vult_account ?? false}
             leagueCode={competition.fplLeagueCode}
           />
         </div>

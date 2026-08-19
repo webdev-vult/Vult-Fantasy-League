@@ -24,7 +24,7 @@ export default async function RegistrationSuccessPage({
           <p className="mt-7 text-xs font-black uppercase tracking-[0.2em] text-[var(--brand)]">Registration received</p>
           <h1 className="mt-3 text-4xl font-black tracking-[-0.04em] text-[var(--brand-strong)]">Your entry is pending verification.</h1>
           <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">
-            Vult will check your FPL Entry ID, Vult account, duplicate-entry status and competition eligibility before approving your registration.
+            Vult will check your FPL Entry ID and duplicate-entry status before approving your registration. KYC Level 1 is checked only if you are selected for a weekly, monthly or overall prize.
           </p>
 
           <div className="mx-auto mt-8 max-w-md rounded-2xl bg-[var(--surface-soft)] p-5">
