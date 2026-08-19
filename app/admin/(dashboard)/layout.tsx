@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import vultLogo from "@/components/public/vult-logo.svg";
+import vultLogo from "@/components/public/vult-logo-white.svg";
 import { requireAdmin } from "@/lib/auth/admin";
 import { signOutAdmin } from "./actions";
 
@@ -56,7 +56,7 @@ export default async function AdminDashboardLayout({
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between px-5 py-5 lg:px-6 lg:py-7">
             <Link href="/admin" className="flex items-center gap-3">
-              <span className="rounded-xl bg-white px-3 py-2 shadow-md shadow-black/10">
+              <span className="rounded-xl">
                 <Image src={vultLogo} alt="Vult" className="h-auto w-[84x]" priority />
               </span>
               <span>

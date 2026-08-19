@@ -8,7 +8,7 @@ export function SiteFooter() {
       <div className="mx-auto grid w-full max-w-7xl gap-9 px-5 py-12 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end lg:px-10">
         <div className="max-w-md">
           <div>
-            <Image src={vultLogo} alt="Vult" className="h-auto w-[90px]" />
+            <Image src={vultLogo} alt="Vult" className="h-auto w-[100px]" />
           </div>
           <p className="mt-5 text-lg font-black">Play fantasy. Compete all season. Win with Vult.</p>
           <p className="mt-2 text-sm leading-7 text-blue-100">The official home for Vult EPL Fantasy registration, published standings, fixtures, prizes and competition updates.</p>
