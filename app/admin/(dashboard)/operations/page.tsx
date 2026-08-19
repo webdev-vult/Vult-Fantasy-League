@@ -519,10 +519,11 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                     </summary>
                     <div className="mt-4 grid gap-3 text-sm text-[var(--muted)] sm:grid-cols-2">
                       <p><strong className="text-[var(--brand-strong)]">Countries:</strong> {rule.eligible_country_codes.join(", ")}</p>
-                      <p><strong className="text-[var(--brand-strong)]">Chip policy:</strong> {label(rule.weekly_chip_policy)}</p>
+                      <p><strong className="text-[var(--brand-strong)]">Chip usage:</strong> Recorded only</p>
+                      <p><strong className="text-[var(--brand-strong)]">Transfer costs:</strong> Recorded only</p>
                       <p><strong className="text-[var(--brand-strong)]">Vult required:</strong> {rule.requires_vult_account ? "Yes" : "No"}</p>
                       <p><strong className="text-[var(--brand-strong)]">Employees eligible:</strong> {rule.employees_eligible ? "Yes" : "No"}</p>
-                      <p className="sm:col-span-2"><strong className="text-[var(--brand-strong)]">Tie-breakers:</strong> {stringList(rule.tie_breakers).map(label).join(" → ")}</p>
+                      <p className="sm:col-span-2"><strong className="text-[var(--brand-strong)]">Tie-breaker:</strong> Point arrival order</p>
                     </div>
                     {canManage && rule.status === "draft" ? (
                       <div className="mt-5 space-y-4 border-t border-[var(--border)] pt-4">
