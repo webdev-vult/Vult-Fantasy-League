@@ -145,21 +145,18 @@ function RuleFormFields({
         Eligible country codes
         <input name="eligible_country_codes" defaultValue={rule?.eligible_country_codes.join(", ") ?? "SL"} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
       </label>
-      <label className="text-xs font-bold text-[var(--muted)]">
-        Weekly chip policy
-        <select name="weekly_chip_policy" defaultValue={rule?.weekly_chip_policy ?? "exclude_score_affecting_chips"} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm">
-          <option value="exclude_score_affecting_chips">Exclude score-affecting chips</option>
-          <option value="allow_all">Allow all chips</option>
-        </select>
-      </label>
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs leading-5 text-[var(--muted)]">
+        <strong className="block text-[var(--brand-strong)]">Chip usage: recorded only</strong>
+        Chips remain visible in score records but do not change rank or prize eligibility.
+      </div>
       <label className="text-xs font-bold text-[var(--muted)]">
         Dispute window (hours)
         <input name="dispute_window_hours" type="number" min="1" defaultValue={rule?.dispute_window_hours ?? 72} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
       </label>
-      <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">
-        Tie-breakers, in order
-        <input name="tie_breakers" defaultValue={stringList(rule?.tie_breakers).join(", ") || "lowest_fpl_entry_id, earliest_registration"} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
-      </label>
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs leading-5 text-[var(--muted)] sm:col-span-2">
+        <strong className="block text-[var(--brand-strong)]">Tie-break: point arrival order</strong>
+        The team first observed reaching the tied score ranks higher. If both arrive in the same provider sync, official FPL order decides.
+      </div>
       <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2">
         Disqualification rules, one per line
         <textarea name="disqualification_rules" rows={3} defaultValue={stringList(rule?.disqualification_rules).join("\n")} placeholder="Duplicate entry&#10;False identity information" className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" />
@@ -167,7 +164,7 @@ function RuleFormFields({
       <div className="grid gap-2 text-xs font-bold text-[var(--brand-strong)] sm:col-span-2 sm:grid-cols-2">
         <label className="flex items-center gap-2"><input name="requires_vult_account" type="checkbox" defaultChecked={rule?.requires_vult_account ?? true} /> Require a Vult account</label>
         <label className="flex items-center gap-2"><input name="one_entry_per_participant" type="checkbox" defaultChecked={rule?.one_entry_per_participant ?? true} /> One entry per participant</label>
-        <label className="flex items-center gap-2"><input name="include_transfer_deductions" type="checkbox" defaultChecked={rule?.include_transfer_deductions ?? true} /> Include transfer deductions</label>
+        <p className="rounded-lg bg-[var(--surface-soft)] px-3 py-2 text-[var(--muted)]"><strong className="text-[var(--brand-strong)]">Transfers:</strong> costs are displayed but never deducted from ranking points.</p>
         <label className="flex items-center gap-2"><input name="repeat_weekly_winners_allowed" type="checkbox" defaultChecked={rule?.repeat_weekly_winners_allowed ?? true} /> Allow repeat weekly winners</label>
         <label className="flex items-center gap-2"><input name="employees_eligible" type="checkbox" defaultChecked={rule?.employees_eligible ?? false} /> Employees eligible</label>
       </div>
@@ -525,7 +522,7 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                       <p><strong className="text-[var(--brand-strong)]">Chip policy:</strong> {label(rule.weekly_chip_policy)}</p>
                       <p><strong className="text-[var(--brand-strong)]">Vult required:</strong> {rule.requires_vult_account ? "Yes" : "No"}</p>
                       <p><strong className="text-[var(--brand-strong)]">Employees eligible:</strong> {rule.employees_eligible ? "Yes" : "No"}</p>
-                      <p className="sm:col-span-2"><strong className="text-[var(--brand-strong)]">Tie-breakers:</strong> {stringList(rule.tie_breakers).join(" → ")}</p>
+                      <p className="sm:col-span-2"><strong className="text-[var(--brand-strong)]">Tie-breakers:</strong> {stringList(rule.tie_breakers).map(label).join(" → ")}</p>
                     </div>
                     {canManage && rule.status === "draft" ? (
                       <div className="mt-5 space-y-4 border-t border-[var(--border)] pt-4">
