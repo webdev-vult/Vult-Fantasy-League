@@ -19,7 +19,7 @@ function stringList(value: unknown) {
 export default async function RulesPage() {
   const competition = await getPublicCompetition();
   const rules = await getPublishedRules(competition.id, competition.rulesVersion);
-  const tieBreakers = stringList(rules?.tie_breakers);
+  const tieBreakers = rules ? ["points_arrival"] : [];
   const disqualifications = stringList(rules?.disqualification_rules);
 
   return (
@@ -60,7 +60,7 @@ export default async function RulesPage() {
                 ["Vult account", rules.requires_vult_account ? "Required" : "Not required"],
                 ["Entries per participant", rules.one_entry_per_participant ? "One entry" : "Multiple entries allowed"],
                 ["Employee eligibility", rules.employees_eligible ? "Eligible" : "Not eligible"],
-                ["Transfer deductions", rules.include_transfer_deductions ? "Included" : "Excluded"],
+                ["Transfer costs", "Recorded only — not deducted"],
                 ["Repeat weekly winners", rules.repeat_weekly_winners_allowed ? "Allowed" : "Not allowed"],
                 ["Dispute window", `${rules.dispute_window_hours} hours`],
               ].map(([label, value]) => (
@@ -72,11 +72,9 @@ export default async function RulesPage() {
             </div>
 
             <section className="rounded-[2rem] border border-[var(--border)] bg-white p-7 shadow-sm">
-              <h2 className="text-2xl font-black text-[var(--brand-strong)]">Weekly chip policy</h2>
+              <h2 className="text-2xl font-black text-[var(--brand-strong)]">Chip usage</h2>
               <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-                {rules.weekly_chip_policy === "exclude_score_affecting_chips"
-                  ? "Managers using a score-affecting chip may be excluded from that Gameweek’s weekly prize, while their official score can still count toward monthly and overall standings."
-                  : "All official chip use is allowed for weekly prize consideration."}
+                Chip usage remains visible for transparency, but it does not reduce points, change rank or exclude a manager from weekly prize consideration.
               </p>
             </section>
 
@@ -87,7 +85,7 @@ export default async function RulesPage() {
                   {tieBreakers.map((item, index) => (
                     <li key={`${item}-${index}`} className="flex gap-3 text-sm leading-7 text-[var(--muted)]">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-xs font-black text-[var(--brand)]">{index + 1}</span>
-                      <span>{item}</span>
+                      <span>{item === "points_arrival" ? "First observed arrival at the tied point total" : item}</span>
                     </li>
                   ))}
                 </ol>

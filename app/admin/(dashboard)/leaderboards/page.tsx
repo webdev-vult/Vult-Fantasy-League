@@ -433,13 +433,13 @@ export default async function LeaderboardAdminPage({ searchParams }: { searchPar
           <section className="rounded-3xl border border-[var(--border)] bg-white shadow-sm">
             <div className="border-b border-[var(--border)] px-6 py-5">
               <h2 className="text-2xl font-black text-[var(--brand-strong)]">{selectedRound?.name ?? "Gameweek"} standings</h2>
-              <p className="mt-1 text-sm text-[var(--muted)]">Effective points include transfer deductions when enabled by the published rules.</p>
+              <p className="mt-1 text-sm text-[var(--muted)]">Ranking points equal reported FPL points. Transfer costs and chips remain visible for audit only.</p>
             </div>
             {roundScores.length ? (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[1100px] text-left text-sm">
                   <thead className="bg-[var(--surface-soft)] text-xs uppercase tracking-[0.1em] text-[var(--muted)]">
-                    <tr><th className="px-5 py-4">Rank</th><th className="px-5 py-4">Manager / Team</th><th className="px-5 py-4">Reported</th><th className="px-5 py-4">Transfer</th><th className="px-5 py-4">Effective</th><th className="px-5 py-4">Chip</th><th className="px-5 py-4">Eligibility</th><th className="px-5 py-4">Status</th><th className="px-5 py-4">Correction</th></tr>
+                    <tr><th className="px-5 py-4">Rank</th><th className="px-5 py-4">Manager / Team</th><th className="px-5 py-4">Reported</th><th className="px-5 py-4">Transfer</th><th className="px-5 py-4">Ranking points</th><th className="px-5 py-4">Chip</th><th className="px-5 py-4">Eligibility</th><th className="px-5 py-4">Status</th><th className="px-5 py-4">Correction</th></tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
                     {roundScores.map((score) => {
