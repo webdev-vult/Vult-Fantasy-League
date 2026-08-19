@@ -53,6 +53,7 @@ type RegistrationDetail = {
     fpl_checked_at: string | null;
     fpl_checked_by: string | null;
     vult_status: string;
+    vult_kyc_level: number;
     vult_notes: string | null;
     vult_checked_at: string | null;
     vult_checked_by: string | null;
@@ -169,7 +170,7 @@ export default async function ParticipantDetailPage({
         verification:registration_verifications(
           id, fpl_status, fpl_verified_entry_id, fpl_manager_name, fpl_team_name,
           fpl_notes, fpl_checked_at, fpl_checked_by,
-          vult_status, vult_notes, vult_checked_at, vult_checked_by,
+          vult_status, vult_kyc_level, vult_notes, vult_checked_at, vult_checked_by,
           duplicate_risk, duplicate_risk_reasons, duplicate_checked_at, duplicate_checked_by
         ),
         competition_season:competition_seasons!registrations_competition_season_id_fkey(
@@ -204,7 +205,7 @@ export default async function ParticipantDetailPage({
     db.from("admin_profiles").select("id, full_name, role").eq("is_active", true),
     db
       .from("competition_rules")
-      .select("requires_vult_account")
+      .select("minimum_vult_kyc_level")
       .eq("competition_season_id", registration.competition_season_id)
       .eq("version", registration.rules_version)
       .maybeSingle(),
@@ -222,7 +223,7 @@ export default async function ParticipantDetailPage({
   const canVerify = ["super_admin", "competition_manager", "compliance_officer"].includes(admin.role);
   const canAddNotes = ["super_admin", "competition_manager", "compliance_officer", "support_officer"].includes(admin.role);
   const fplVerified = verification?.fpl_status === "verified" && Boolean(entry?.verified_at);
-  const requiresVultAccount = ruleResult.data?.requires_vult_account ?? true;
+  const minimumVultKycLevel = ruleResult.data?.minimum_vult_kyc_level ?? 1;
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -266,7 +267,7 @@ export default async function ParticipantDetailPage({
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           [verification?.fpl_status ?? "pending", "FPL verification", verification?.fpl_checked_at],
-          [verification?.vult_status ?? "pending", "Vult verification", verification?.vult_checked_at],
+          [verification?.vult_status ?? "pending", `Vult KYC Level ${verification?.vult_kyc_level ?? 0}`, verification?.vult_checked_at],
           [verification?.duplicate_risk ?? "none", "Duplicate risk", verification?.duplicate_checked_at],
           [registration.status, "Registration status", registration.approved_at],
         ].map(([value, title, date]) => (
@@ -302,7 +303,7 @@ export default async function ParticipantDetailPage({
                   <input name="full_name" required defaultValue={participant.full_name} disabled={!canVerify} className={inputClass} />
                 </label>
                 <label>
-                  <span className={labelClass}>{requiresVultAccount ? "Vult phone number" : "Phone number"}</span>
+                  <span className={labelClass}>Phone number</span>
                   <input name="phone" required defaultValue={participant.phone} disabled={!canVerify} className={inputClass} />
                 </label>
                 <label>
@@ -376,52 +377,52 @@ export default async function ParticipantDetailPage({
           </section>
 
           <section className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm sm:p-7">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">Vult verification</p>
-            {requiresVultAccount ? (
-              <>
-                <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Verify the Vult account by phone number</h2>
-                <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                  Check the participant in the Vult system using the submitted Vult phone number. No separate customer reference is required.
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">Vult prize eligibility</p>
+            <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Check the winner&apos;s Vult KYC level</h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+              This check does not affect participation or leaderboard rank. It is used only when deciding weekly, monthly and overall prize winners. The current rule requires KYC Level {minimumVultKycLevel} or higher.
+            </p>
+
+            <div className="mt-5 rounded-2xl bg-[#f7f8fc] p-4">
+              <p className={labelClass}>Phone number to check in Vult</p>
+              <p className="mt-2 text-lg font-black text-[var(--brand-strong)]">{participant?.phone ?? "Not available"}</p>
+            </div>
+
+            <form action={updateVultVerificationAction} className="mt-6 grid gap-4 sm:grid-cols-2">
+              <input type="hidden" name="registration_id" value={registration.id} />
+              <label className="block">
+                <span className={labelClass}>Vult account status</span>
+                <select name="vult_status" defaultValue={verification?.vult_status ?? "pending"} disabled={!canVerify} className={inputClass}>
+                  {verificationStatuses.map((status) => <option key={status} value={status}>{label(status)}</option>)}
+                </select>
+              </label>
+              <label className="block">
+                <span className={labelClass}>KYC level confirmed in Vult</span>
+                <select name="vult_kyc_level" defaultValue={String(verification?.vult_kyc_level ?? 0)} disabled={!canVerify} className={inputClass}>
+                  <option value="0">Level 0 — Level 1 not completed</option>
+                  <option value="1">Level 1</option>
+                  <option value="2">Level 2</option>
+                  <option value="3">Level 3</option>
+                </select>
+              </label>
+              <label className="block sm:col-span-2">
+                <span className={labelClass}>Verification notes</span>
+                <textarea
+                  name="vult_notes"
+                  rows={4}
+                  placeholder="Record how the KYC level was confirmed in the Vult system."
+                  defaultValue={verification?.vult_notes ?? ""}
+                  disabled={!canVerify}
+                  className={inputClass}
+                />
+              </label>
+              <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2">
+                <p className="text-xs text-[var(--muted)]">
+                  Checked by {verification?.vult_checked_by ? adminNames.get(verification.vult_checked_by) ?? "an administrator" : "nobody yet"} · {formatDate(verification?.vult_checked_at ?? null)}
                 </p>
-
-                <div className="mt-5 rounded-2xl bg-[#f7f8fc] p-4">
-                  <p className={labelClass}>Vult phone number</p>
-                  <p className="mt-2 text-lg font-black text-[var(--brand-strong)]">{participant?.phone ?? "Not available"}</p>
-                </div>
-
-                <form action={updateVultVerificationAction} className="mt-6 space-y-4">
-                  <input type="hidden" name="registration_id" value={registration.id} />
-                  <label className="block">
-                    <span className={labelClass}>Vult status</span>
-                    <select name="vult_status" defaultValue={verification?.vult_status ?? "pending"} disabled={!canVerify} className={inputClass}>
-                      {verificationStatuses.map((status) => <option key={status} value={status}>{label(status)}</option>)}
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className={labelClass}>Verification notes</span>
-                    <textarea
-                      name="vult_notes"
-                      rows={4}
-                      placeholder="Optional account-verification notes"
-                      defaultValue={verification?.vult_notes ?? ""}
-                      disabled={!canVerify}
-                      className={inputClass}
-                    />
-                  </label>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-xs text-[var(--muted)]">
-                      Checked by {verification?.vult_checked_by ? adminNames.get(verification.vult_checked_by) ?? "an administrator" : "nobody yet"} · {formatDate(verification?.vult_checked_at ?? null)}
-                    </p>
-                    {canVerify ? <button className="rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-black text-white">Save Vult verification</button> : null}
-                  </div>
-                </form>
-              </>
-            ) : (
-              <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-5 text-sm leading-6 text-green-900">
-                <h2 className="text-lg font-black">No Vult account verification required</h2>
-                <p className="mt-1">The participant accepted rules version {registration.rules_version}, which does not require a Vult account.</p>
+                {canVerify ? <button className="rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-black text-white">Save KYC check</button> : null}
               </div>
-            )}
+            </form>
           </section>
         </div>
 

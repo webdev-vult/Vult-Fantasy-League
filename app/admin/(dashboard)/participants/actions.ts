@@ -231,6 +231,11 @@ export async function updateVultVerificationAction(formData: FormData) {
       VERIFICATION_STATUSES,
       "Vult status",
     );
+    const requestedKycLevel = Number.parseInt(text(formData, "vult_kyc_level"), 10);
+    if (!Number.isInteger(requestedKycLevel) || requestedKycLevel < 0 || requestedKycLevel > 3) {
+      throw new Error("Vult KYC level must be between 0 and 3.");
+    }
+    const recordedKycLevel = status === "verified" ? requestedKycLevel : 0;
 
     const supabase = await createServerSupabaseClient();
     const db = supabase as any;
@@ -264,6 +269,7 @@ export async function updateVultVerificationAction(formData: FormData) {
       {
         registration_id: registrationId,
         vult_status: status,
+        vult_kyc_level: recordedKycLevel,
         // Legacy column retained for compatibility; it now stores the verified Vult phone number.
         vult_verified_reference: status === "verified" ? vultPhone : null,
         vult_notes: optionalText(formData, "vult_notes"),
@@ -277,20 +283,21 @@ export async function updateVultVerificationAction(formData: FormData) {
 
     await writeAuditLog(admin.id, "vult_verification_updated", "registration", registrationId, {
       status,
+      vult_kyc_level: recordedKycLevel,
       vult_phone_number: status === "verified" ? vultPhone : null,
-      verification_source: "vult_phone_lookup",
+      verification_source: "manual_vult_system_kyc_check",
       checked_at: checkedAt,
     });
   } catch (error) {
     redirectToRegistration(
       registrationId,
       "error",
-      error instanceof Error ? error.message : "Unable to update Vult verification.",
+      error instanceof Error ? error.message : "Unable to update Vult KYC verification.",
     );
   }
 
   refreshParticipantRoutes(registrationId);
-  redirectToRegistration(registrationId, "success", "Vult verification updated.");
+  redirectToRegistration(registrationId, "success", "Vult KYC verification updated.");
 }
 
 export async function refreshDuplicateRiskAction(formData: FormData) {

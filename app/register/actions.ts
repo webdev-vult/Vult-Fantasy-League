@@ -15,7 +15,6 @@ const SAFE_MESSAGES = [
   "Registration is not currently available.",
   "Too many registration attempts. Please wait a few minutes and try again.",
   "You must accept the competition rules and privacy notice.",
-  "You must confirm that you meet the minimum age requirement.",
   "Enter your full legal name.",
   "Enter a valid phone number.",
   "Enter a valid email address.",
@@ -133,10 +132,6 @@ export async function submitRegistrationAction(
     return { error: "Complete all required registration fields." };
   }
 
-  if (formData.get("age_confirmed") !== "on") {
-    return { error: "You must confirm that you meet the minimum age requirement." };
-  }
-
   let data: any;
 
   try {
@@ -179,7 +174,7 @@ export async function submitRegistrationAction(
       p_fpl_entry_id: resolved.entryId,
       p_fpl_team_name: resolved.teamName,
       p_fpl_manager_name: resolved.managerName,
-      p_age_confirmed: formData.get("age_confirmed") === "on",
+      p_age_confirmed: false,
       p_rules_consent: formData.get("rules_consent") === "on",
       p_privacy_consent: formData.get("privacy_consent") === "on",
       p_publicity_consent: formData.get("publicity_consent") === "on",

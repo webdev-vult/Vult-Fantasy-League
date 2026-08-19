@@ -15,14 +15,10 @@ const inputClass =
 export function RegistrationForm({
   competitionSlug,
   registrationOpen,
-  minimumAge,
-  requiresVultAccount,
   leagueCode,
 }: {
   competitionSlug: string;
   registrationOpen: boolean;
-  minimumAge: number;
-  requiresVultAccount: boolean;
   leagueCode: string | null;
 }) {
   const [state, formAction, pending] = useActionState(
@@ -78,12 +74,10 @@ export function RegistrationForm({
         <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">How Vult can reach you</h2>
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <label className="text-sm font-bold text-[var(--brand-strong)]">
-            {requiresVultAccount ? "Vult phone number" : "Phone number"} <span className="text-red-600">*</span>
+            Phone number <span className="text-red-600">*</span>
             <input className={inputClass} type="tel" name="phone" required disabled={disabled} autoComplete="tel" placeholder="+232 76 000000" />
             <span className="mt-2 block text-xs font-normal text-[var(--muted)]">
-              {requiresVultAccount
-                ? "Use the phone number registered on your Vult account."
-                : "Use a reliable contact number where Vult can reach you."}
+              Use a reliable contact number. If you have Vult, use the number linked to your account so KYC can be checked if you win.
             </span>
           </label>
           <label className="text-sm font-bold text-[var(--brand-strong)]">
@@ -139,11 +133,10 @@ export function RegistrationForm({
 
       <section className="border-t border-[var(--border)] pt-8">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--brand)]">Declarations</p>
+        <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
+          Everyone may play regardless of age. To receive a weekly, monthly or overall prize, a selected winner must have completed Vult KYC Level 1 or higher when Vult performs the winner check.
+        </div>
         <div className="mt-5 space-y-4">
-          <label className="flex gap-3 rounded-2xl border border-[var(--border)] bg-white p-4 text-sm leading-6 text-[var(--muted)]">
-            <input type="checkbox" name="age_confirmed" required disabled={disabled} className="mt-1 h-4 w-4" />
-            <span>I confirm that I am at least {minimumAge} years old. <span className="text-red-600">*</span></span>
-          </label>
           <label className="flex gap-3 rounded-2xl border border-[var(--border)] bg-white p-4 text-sm leading-6 text-[var(--muted)]">
             <input type="checkbox" name="rules_consent" required disabled={disabled} className="mt-1 h-4 w-4" />
             <span>I have read and accept the <Link href="/rules" className="font-black text-[var(--brand)] underline">competition rules</Link>. <span className="text-red-600">*</span></span>

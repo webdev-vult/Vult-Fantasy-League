@@ -27,9 +27,8 @@ export type PublicRule = {
   id: string;
   version: number;
   title: string;
-  minimum_age: number;
+  minimum_vult_kyc_level: number;
   eligible_country_codes: string[];
-  requires_vult_account: boolean;
   one_entry_per_participant: boolean;
   employees_eligible: boolean;
   weekly_chip_policy: string;
@@ -233,7 +232,7 @@ export async function getPublishedRules(
     const { data, error } = await db
       .from("competition_rules")
       .select(
-        "id, version, title, minimum_age, eligible_country_codes, requires_vult_account, one_entry_per_participant, employees_eligible, weekly_chip_policy, include_transfer_deductions, repeat_weekly_winners_allowed, dispute_window_hours, tie_breakers, disqualification_rules, notes, published_at",
+        "id, version, title, minimum_vult_kyc_level, eligible_country_codes, one_entry_per_participant, employees_eligible, weekly_chip_policy, include_transfer_deductions, repeat_weekly_winners_allowed, dispute_window_hours, tie_breakers, disqualification_rules, notes, published_at",
       )
       .eq("competition_season_id", competitionSeasonId)
       .eq("version", rulesVersion)

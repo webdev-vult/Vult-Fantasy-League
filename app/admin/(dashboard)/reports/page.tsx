@@ -203,7 +203,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
           <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard label="Registrations" value={h.registrations} note={`${formatNumber(h.approved)} approved · ${number(h.approval_rate).toFixed(2)}% approval`} />
             <MetricCard label="Unique participants" value={h.unique_participants} note="Distinct participant profiles in this season" />
-            <MetricCard label="Verified entries" value={h.fpl_verified} note={`${formatNumber(h.vult_verified)} Vult accounts verified`} />
+            <MetricCard label="Verified entries" value={h.fpl_verified} note={`${formatNumber(h.vult_verified)} Vult records checked`} />
             <MetricCard label="Finalised rounds" value={h.rounds_finalised} note={`${formatNumber(h.rounds_total)} rounds configured`} />
             <MetricCard label="Published leaderboards" value={h.published_leaderboards} note={`${formatNumber(h.score_rows)} promoted score rows`} />
             <MetricCard label="Confirmed winners" value={h.confirmed_winners} note={`${formatNumber(h.active_settlements)} active settlements`} />
@@ -214,7 +214,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
             <BreakdownCard title="Registration status" rows={dashboard.registration_statuses} />
             <BreakdownCard title="Eligibility status" rows={dashboard.eligibility_statuses} />
             <BreakdownCard title="FPL verification" rows={dashboard.verification_statuses.fpl} />
-            <BreakdownCard title="Vult verification" rows={dashboard.verification_statuses.vult} />
+            <BreakdownCard title="Vult KYC checks" rows={dashboard.verification_statuses.vult} />
             <BreakdownCard title="Duplicate risk" rows={dashboard.verification_statuses.duplicate_risk} />
             <article className="rounded-3xl bg-[var(--brand-strong)] p-6 text-white shadow-xl shadow-blue-950/15">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--accent)]">Data freshness</p>

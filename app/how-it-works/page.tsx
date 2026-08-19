@@ -23,7 +23,7 @@ const steps = [
   {
     title: "Submit one seasonal registration",
     description:
-      "Provide your contact details, including the phone number registered on your Vult account, and enter the exact Team name and Manager name shown in the official Vult FPL mini-league during the published registration window.",
+      "Provide your contact details and enter the exact Team name and Manager name shown in the official Vult FPL mini-league during the published registration window. There is no age limit to play.",
   },
   {
     title: "Vult resolves your FPL Entry ID",
@@ -31,9 +31,9 @@ const steps = [
       "The platform matches your Team and Manager names against the configured Vult league and stores the numeric FPL Entry ID automatically as the permanent fantasy-team identifier.",
   },
   {
-    title: "Complete eligibility review",
+    title: "Complete entry review",
     description:
-      "Vult checks FPL membership, duplicate risk, the published age declaration and other eligibility requirements. A Vult account is verified only when the published rules require one.",
+      "Vult checks FPL membership, duplicate risk and the published competition requirements. You can play and appear in the standings without completing Vult KYC.",
   },
   {
     title: "Compete across the season",
@@ -43,7 +43,7 @@ const steps = [
   {
     title: "Winner review and payment",
     description:
-      "Provisional winners pass competition and compliance review before final confirmation. Cash prizes are credited manually in Vult to the verified account and the fantasy platform records the transaction for audit purposes.",
+      "Provisional winners must have Vult KYC Level 1 or higher when Vult checks the account. A manager who has not completed Level 1 remains in the standings but is skipped for weekly, monthly and overall prizes.",
   },
 ];
 

@@ -56,14 +56,13 @@ export async function GET(request: NextRequest) {
         registration_channel,
         rules_version,
         participant:participants!registrations_participant_id_fkey(
-          full_name, date_of_birth, phone, whatsapp_phone, email, city, country,
-          vult_customer_ref, status
+          full_name, phone, whatsapp_phone, email, city, country, status
         ),
         fantasy_entry:fantasy_entries(
           provider, provider_entry_id, manager_name, team_name, verified_at
         ),
         verification:registration_verifications${verificationJoin}(
-          fpl_status, vult_status, duplicate_risk, duplicate_risk_reasons,
+          fpl_status, vult_status, vult_kyc_level, duplicate_risk, duplicate_risk_reasons,
           fpl_checked_at, vult_checked_at, duplicate_checked_at
         ),
         competition_season:competition_seasons!registrations_competition_season_id_fkey(
@@ -102,7 +101,6 @@ export async function GET(request: NextRequest) {
       participant.phone,
       participant.whatsapp_phone,
       participant.email,
-      participant.vult_customer_ref,
       entry.provider_entry_id,
       entry.manager_name,
       entry.team_name,
@@ -118,20 +116,19 @@ export async function GET(request: NextRequest) {
     "Registration Channel",
     "Rules Version",
     "Full Name",
-    "Date of Birth",
     "Phone",
     "WhatsApp",
     "Email",
     "City",
     "Country",
     "Participant Status",
-    "Vult Customer Reference",
     "FPL Provider",
     "FPL Entry ID",
     "FPL Manager Name",
     "FPL Team Name",
     "FPL Verification",
     "Vult Verification",
+    "Vult KYC Level",
     "Duplicate Risk",
     "Duplicate Risk Reasons",
   ];
@@ -155,20 +152,19 @@ export async function GET(request: NextRequest) {
         row.registration_channel,
         row.rules_version,
         participant.full_name,
-        participant.date_of_birth,
         participant.phone,
         participant.whatsapp_phone,
         participant.email,
         participant.city,
         participant.country,
         participant.status,
-        participant.vult_customer_ref,
         entry.provider,
         entry.provider_entry_id,
         entry.manager_name,
         entry.team_name,
         verification.fpl_status,
         verification.vult_status,
+        verification.vult_kyc_level,
         verification.duplicate_risk,
         reasons,
       ]
