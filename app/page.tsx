@@ -178,7 +178,6 @@ export default async function Home() {
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-200">Official fixtures</p>
                 <h3 className="mt-2 text-2xl font-black">{gameweek.name}</h3>
               </div>
-              <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-blue-100">FPL data</span>
             </div>
             {featuredFixtures.length ? (
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
