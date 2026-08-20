@@ -121,6 +121,38 @@ function prizeCode(value: string) {
     .replace(/^_+|_+$/g, "");
 }
 
+function prizeValues(formData: FormData) {
+  const code = prizeCode(requiredText(formData, "code", "Prize code"));
+  if (!code) throw new Error("Prize code is invalid.");
+
+  return {
+    code,
+    name: requiredText(formData, "name", "Prize name"),
+    description: optionalText(formData, "description"),
+    frequency: assertAllowed(
+      requiredText(formData, "frequency", "Frequency"),
+      PRIZE_FREQUENCIES,
+      "Frequency",
+    ),
+    position: integer(formData, "position", "Position", 1),
+    amount: decimal(formData, "amount", "Amount", 0),
+    currency: requiredText(formData, "currency", "Currency").toUpperCase(),
+    prize_type: assertAllowed(
+      requiredText(formData, "prize_type", "Prize type"),
+      PRIZE_TYPES,
+      "Prize type",
+    ),
+    non_cash_description: optionalText(formData, "non_cash_description"),
+    payment_method: requiredText(formData, "payment_method", "Payment method"),
+    payment_deadline_days: integer(
+      formData,
+      "payment_deadline_days",
+      "Payment deadline",
+      1,
+    ),
+  };
+}
+
 function redirectWithMessage(type: "success" | "error", message: string, seasonId?: string): never {
   const params = new URLSearchParams({ [type]: message });
   if (seasonId) params.set("season", seasonId);
@@ -149,6 +181,9 @@ async function writeAuditLog(
 function refreshOperations() {
   revalidatePath("/admin");
   revalidatePath("/admin/operations");
+  revalidatePath("/admin/winners");
+  revalidatePath("/");
+  revalidatePath("/prizes");
 }
 
 export async function seedRoundsAction(formData: FormData) {
@@ -518,27 +553,14 @@ export async function createPrizeAction(formData: FormData) {
   const competitionSeasonId = requiredText(formData, "competition_season_id", "Competition season");
 
   try {
-    const code = prizeCode(requiredText(formData, "code", "Prize code"));
-    if (!code) throw new Error("Prize code is invalid.");
-    const frequency = assertAllowed(requiredText(formData, "frequency", "Frequency"), PRIZE_FREQUENCIES, "Frequency");
-    const prizeType = assertAllowed(requiredText(formData, "prize_type", "Prize type"), PRIZE_TYPES, "Prize type");
+    const values = prizeValues(formData);
     const supabase = await createServerSupabaseClient();
     const db = supabase as any;
     const { data, error } = await db
       .from("prizes")
       .insert({
         competition_season_id: competitionSeasonId,
-        code,
-        name: requiredText(formData, "name", "Prize name"),
-        description: optionalText(formData, "description"),
-        frequency,
-        position: integer(formData, "position", "Position", 1),
-        amount: decimal(formData, "amount", "Amount", 0),
-        currency: requiredText(formData, "currency", "Currency").toUpperCase(),
-        prize_type: prizeType,
-        non_cash_description: optionalText(formData, "non_cash_description"),
-        payment_method: requiredText(formData, "payment_method", "Payment method"),
-        payment_deadline_days: integer(formData, "payment_deadline_days", "Payment deadline", 1),
+        ...values,
         is_active: true,
       })
       .select("id, code, name, frequency, position, amount, currency")
@@ -563,6 +585,51 @@ export async function createPrizeAction(formData: FormData) {
 
   refreshOperations();
   redirectWithMessage("success", "Prize created successfully.", competitionSeasonId);
+}
+
+export async function updatePrizeAction(formData: FormData) {
+  const admin = await requireAdminRole(PRIZE_ROLES);
+  const competitionSeasonId = requiredText(formData, "competition_season_id", "Competition season");
+
+  try {
+    const id = requiredText(formData, "id", "Prize");
+    const values = prizeValues(formData);
+    const supabase = await createServerSupabaseClient();
+    const db = supabase as any;
+
+    const { data: previous, error: previousError } = await db
+      .from("prizes")
+      .select("id, code, name, description, frequency, position, amount, currency, prize_type, non_cash_description, payment_method, payment_deadline_days, is_active")
+      .eq("id", id)
+      .eq("competition_season_id", competitionSeasonId)
+      .single();
+    if (previousError || !previous) {
+      throw new Error(previousError?.message ?? "Prize not found.");
+    }
+
+    const { data, error } = await db
+      .from("prizes")
+      .update(values)
+      .eq("id", id)
+      .eq("competition_season_id", competitionSeasonId)
+      .select("id, code, name, description, frequency, position, amount, currency, prize_type, non_cash_description, payment_method, payment_deadline_days, is_active")
+      .single();
+    if (error || !data) throw new Error(error?.message ?? "Unable to update the prize.");
+
+    await writeAuditLog(admin.id, "update_prize", "prize", data.id, {
+      before: previous,
+      after: data,
+    });
+  } catch (error) {
+    redirectWithMessage(
+      "error",
+      error instanceof Error ? error.message : "Unable to update the prize.",
+      competitionSeasonId,
+    );
+  }
+
+  refreshOperations();
+  redirectWithMessage("success", "Prize updated successfully.", competitionSeasonId);
 }
 
 export async function togglePrizeAction(formData: FormData) {

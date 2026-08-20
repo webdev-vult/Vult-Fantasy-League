@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/public/site-footer";
 import { SiteHeader } from "@/components/public/site-header";
 import {
   formatPublicDate,
+  formatPublicDateTime,
   getPublicCompetition,
   getPublishedRules,
 } from "@/lib/public/competition";
@@ -23,6 +24,17 @@ export default async function RegisterPage() {
     Boolean(rules) &&
     Boolean(competition.externalLeagueId);
   const leagueName = competition.fplLeagueName ?? "Official Vult FPL mini-league";
+  const opensAt = competition.registrationOpensAt
+    ? new Date(competition.registrationOpensAt)
+    : null;
+  const registrationClosedMessage =
+    competition.status === "registration_open" && opensAt && Date.now() < opensAt.getTime()
+      ? `Registration is scheduled to open on ${formatPublicDateTime(competition.registrationOpensAt)} (Freetown time).`
+      : !rules
+        ? "Registration is waiting for Vult to publish the official competition rules."
+        : !competition.externalLeagueId
+          ? "Registration is waiting for the official Vult FPL league to be configured."
+          : "Registration is not currently open. The form will be enabled when Vult opens the season.";
 
   return (
     <main className="min-h-screen bg-[#f4f6fb]">
@@ -75,6 +87,7 @@ export default async function RegisterPage() {
             competitionSlug={competition.slug}
             registrationOpen={registrationOpen}
             leagueCode={competition.fplLeagueCode}
+            closedMessage={registrationClosedMessage}
           />
         </div>
       </section>

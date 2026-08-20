@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: "Published rules for the Vult EPL Fantasy League.",
 };
 
+export const dynamic = "force-dynamic";
+
 function stringList(value: unknown) {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string");

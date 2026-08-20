@@ -31,6 +31,23 @@ function statusLabel(value: string) {
   return value.replaceAll("_", " ");
 }
 
+function effectiveStatusLabel(
+  status: string,
+  registrationOpensAt: string | null,
+  registrationClosesAt: string | null,
+) {
+  if (status !== "registration_open") return statusLabel(status);
+
+  const now = Date.now();
+  if (registrationOpensAt && now < new Date(registrationOpensAt).getTime()) {
+    return "registration scheduled";
+  }
+  if (registrationClosesAt && now > new Date(registrationClosesAt).getTime()) {
+    return "registration window ended";
+  }
+  return "registration open";
+}
+
 type PageProps = {
   searchParams: Promise<{
     success?: string;
@@ -137,7 +154,7 @@ export default async function CompetitionsPage({ searchParams }: PageProps) {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[var(--surface-soft)] px-3 py-1.5 text-xs font-black capitalize text-[var(--brand)]">
-                      {statusLabel(item.status)}
+                      {effectiveStatusLabel(item.status, item.registration_opens_at, item.registration_closes_at)}
                     </span>
                     <span className="rounded-full bg-[#f7f9fd] px-3 py-1.5 text-xs font-black capitalize text-[var(--muted)]">
                       {statusLabel(item.data_provider)} provider

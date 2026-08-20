@@ -239,7 +239,10 @@ export async function getPublishedRules(
       .eq("status", "published")
       .maybeSingle();
 
-    if (error) return null;
+    if (error) {
+      console.error("Unable to load published rules", error.message);
+      return null;
+    }
     return (data as PublicRule | null) ?? null;
   } catch (error) {
     console.error("Unable to load published rules", error);
@@ -262,7 +265,10 @@ export async function getActivePrizes(competitionSeasonId: string | null) {
       .order("frequency")
       .order("position");
 
-    if (error) return [];
+    if (error) {
+      console.error("Unable to load active prizes", error.message);
+      return [];
+    }
     return (data as PublicPrize[] | null) ?? [];
   } catch (error) {
     console.error("Unable to load active prizes", error);
@@ -276,6 +282,19 @@ export function formatPublicDate(value: string | null) {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "Africa/Freetown",
+  }).format(new Date(value));
+}
+
+export function formatPublicDateTime(value: string | null) {
+  if (!value) return "To be announced";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
     timeZone: "Africa/Freetown",
   }).format(new Date(value));
 }

@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: "Published prizes for the Vult EPL Fantasy League.",
 };
 
+export const dynamic = "force-dynamic";
+
 function humanize(value: string) {
   return value
     .split("_")
