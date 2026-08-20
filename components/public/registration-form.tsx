@@ -108,7 +108,6 @@ export function RegistrationForm({
               >
                 Join Vult FPL league
               </a>
-              <span className="text-xs font-black">League code: {leagueCode}</span>
             </div>
           ) : (
             <p className="mt-3 text-xs font-bold">
