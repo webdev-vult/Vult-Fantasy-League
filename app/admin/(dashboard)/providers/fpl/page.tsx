@@ -5,6 +5,7 @@ import {
   enableReadOnlyFplAction,
   runReadOnlyFplSyncAction,
   testReadOnlyFplAction,
+  updateOfficialFplLeagueAction,
 } from "./actions";
 
 const MANAGEMENT_ROLES = ["super_admin", "competition_manager"];
@@ -21,6 +22,8 @@ type Season = {
   name: string;
   status: string;
   data_provider: string;
+  external_league_id: string | null;
+  settings: Record<string, unknown> | null;
 };
 
 type Settings = {
@@ -88,7 +91,7 @@ export default async function FplConnectorPage({ searchParams }: { searchParams:
 
   const { data: seasonRows, error: seasonError } = await db
     .from("competition_seasons")
-    .select("id, name, status, data_provider")
+    .select("id, name, status, data_provider, external_league_id, settings")
     .order("starts_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   const seasons = (seasonRows ?? []) as Season[];
@@ -145,6 +148,16 @@ export default async function FplConnectorPage({ searchParams }: { searchParams:
     settings?.provider === "approved_fpl" &&
     settings.is_enabled;
   const config = settings?.config ?? {};
+  const seasonSettings = selectedSeason.settings ?? {};
+  const leagueCode = typeof seasonSettings.fpl_league_code === "string"
+    ? seasonSettings.fpl_league_code
+    : "";
+  const leagueName = typeof seasonSettings.fpl_league_name === "string"
+    ? seasonSettings.fpl_league_name
+    : selectedSeason.name;
+  const leagueCodeUpdatedAt = typeof seasonSettings.fpl_league_code_updated_at === "string"
+    ? seasonSettings.fpl_league_code_updated_at
+    : null;
   const configuredEndpoints = Array.isArray(config.allowed_endpoints)
     ? config.allowed_endpoints.map(String)
     : [];
@@ -207,6 +220,74 @@ export default async function FplConnectorPage({ searchParams }: { searchParams:
         <p className="font-black">Integration boundary</p>
         <p className="mt-2 max-w-4xl text-sm leading-6">
           The uploaded contract is community-maintained and the upstream endpoints can change without notice. Only public GET endpoints are enabled. Session cookies, CSRF tokens, `/me/`, `/my-team/` and transfer submission are excluded from the application.
+        </p>
+      </section>
+
+      <section className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm sm:p-7">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--brand)]">Official league configuration</p>
+            <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Public join code and FPL league</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              The registration page reads this saved code automatically on every request. Updating it here changes the public join button and displayed code without changing source code or redeploying the website.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-[var(--surface-soft)] px-4 py-3 text-sm">
+            <p className="font-bold text-[var(--muted)]">Current public code</p>
+            <p className="mt-1 text-xl font-black text-[var(--brand-strong)]">{leagueCode || "Not configured"}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">Last changed: {formatDate(leagueCodeUpdatedAt)}</p>
+          </div>
+        </div>
+
+        <form action={updateOfficialFplLeagueAction} className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <input type="hidden" name="competition_season_id" value={selectedSeason.id} />
+          <label className="text-xs font-black uppercase tracking-[0.13em] text-[var(--brand)]">
+            Numeric FPL league ID
+            <input
+              name="external_league_id"
+              inputMode="numeric"
+              pattern="[0-9]+"
+              required
+              defaultValue={selectedSeason.external_league_id ?? ""}
+              className={inputClass}
+            />
+          </label>
+          <label className="text-xs font-black uppercase tracking-[0.13em] text-[var(--brand)]">
+            FPL join code
+            <input
+              name="fpl_league_code"
+              minLength={6}
+              maxLength={12}
+              pattern="[A-Za-z0-9]+"
+              required
+              defaultValue={leagueCode}
+              className={inputClass}
+            />
+          </label>
+          <label className="text-xs font-black uppercase tracking-[0.13em] text-[var(--brand)] md:col-span-2 xl:col-span-1">
+            Public league name
+            <input
+              name="fpl_league_name"
+              required
+              defaultValue={leagueName}
+              className={inputClass}
+            />
+          </label>
+          <div className="md:col-span-2 xl:col-span-3">
+            <button
+              disabled={!canManage}
+              className="rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Update official league details
+            </button>
+            {!canManage ? (
+              <p className="mt-3 text-xs font-bold text-amber-700">Only Super Admin and Competition Manager can update these details.</p>
+            ) : null}
+          </div>
+        </form>
+
+        <p className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-xs leading-6 text-blue-900">
+          FPL does not expose an invitational league&apos;s private join code through its public read-only endpoints. The connector can automatically verify the numeric league and standings, while this controlled Admin field remains the safe source for the invitation code.
         </p>
       </section>
 

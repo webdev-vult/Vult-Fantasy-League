@@ -16,6 +16,7 @@ import {
   createAdminSupabaseClient,
   createServerSupabaseClient,
 } from "@/lib/supabase/server";
+import type { Json } from "@/types/database";
 
 const MANAGEMENT_ROLES = ["super_admin", "competition_manager"] as const;
 const FPL_BASE_URL = "https://fantasy.premierleague.com/api";
@@ -28,6 +29,28 @@ function required(formData: FormData, key: string, label: string) {
   const value = text(formData, key);
   if (!value) throw new Error(`${label} is required.`);
   return value;
+}
+
+function officialLeagueId(formData: FormData) {
+  const value = required(formData, "external_league_id", "Official league ID");
+  if (!/^\d+$/.test(value) || Number.parseInt(value, 10) < 1) {
+    throw new Error("Official league ID must be a positive number.");
+  }
+  return value;
+}
+
+function officialLeagueCode(formData: FormData) {
+  const value = required(formData, "fpl_league_code", "FPL league join code").toLowerCase();
+  if (!/^[a-z0-9]{6,12}$/.test(value)) {
+    throw new Error("FPL league join code must contain 6 to 12 letters or numbers.");
+  }
+  return value;
+}
+
+function settingsObject(value: unknown): { [key: string]: Json | undefined } {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as { [key: string]: Json | undefined })
+    : {};
 }
 
 function redirectToFpl(type: "success" | "error", message: string, seasonId?: string, runId?: string): never {
@@ -52,8 +75,11 @@ function hashPayload(value: unknown) {
 
 function refresh() {
   revalidatePath("/admin");
+  revalidatePath("/admin/competitions");
   revalidatePath("/admin/providers");
   revalidatePath("/admin/providers/fpl");
+  revalidatePath("/");
+  revalidatePath("/register");
 }
 
 type FplContext = {
@@ -137,6 +163,106 @@ async function loadContext(db: any, seasonId: string): Promise<FplContext> {
     entries,
     rounds: roundsResult.data ?? [],
   };
+}
+
+export async function updateOfficialFplLeagueAction(formData: FormData) {
+  const admin = await requireAdminRole(MANAGEMENT_ROLES);
+  const seasonId = required(formData, "competition_season_id", "Competition season");
+
+  try {
+    const leagueId = officialLeagueId(formData);
+    const leagueCode = officialLeagueCode(formData);
+    const leagueName = required(formData, "fpl_league_name", "Public league name");
+    const supabase = await createServerSupabaseClient();
+    const db = supabase as any;
+
+    const [{ data: season, error: seasonError }, { data: providerSettings, error: providerError }] = await Promise.all([
+      db
+        .from("competition_seasons")
+        .select("id, external_league_id, settings")
+        .eq("id", seasonId)
+        .single(),
+      db
+        .from("fantasy_provider_settings")
+        .select("config")
+        .eq("competition_season_id", seasonId)
+        .maybeSingle(),
+    ]);
+    if (seasonError || !season) {
+      throw new Error(seasonError?.message ?? "Competition season not found.");
+    }
+    if (providerError) throw new Error(providerError.message);
+
+    const updatedAt = new Date().toISOString();
+    const previousSettings = settingsObject(season.settings);
+    const nextSettings = {
+      ...previousSettings,
+      fpl_league_code: leagueCode,
+      fpl_league_name: leagueName,
+      fpl_league_code_updated_at: updatedAt,
+      fpl_league_code_updated_by: admin.id,
+    } satisfies { [key: string]: Json | undefined };
+
+    const { error: updateSeasonError } = await db
+      .from("competition_seasons")
+      .update({
+        external_league_id: leagueId,
+        settings: nextSettings,
+      })
+      .eq("id", seasonId);
+    if (updateSeasonError) throw new Error(updateSeasonError.message);
+
+    if (providerSettings) {
+      const providerConfig = settingsObject(providerSettings.config);
+      const { error: updateProviderError } = await db
+        .from("fantasy_provider_settings")
+        .update({
+          config: {
+            ...providerConfig,
+            league_numeric_id: leagueId,
+            league_standings_enabled: true,
+            require_official_league_membership: true,
+          },
+          updated_by: admin.id,
+        })
+        .eq("competition_season_id", seasonId);
+      if (updateProviderError) {
+        console.error("Unable to mirror the official league ID into provider settings", updateProviderError.message);
+      }
+    }
+
+    const { error: auditError } = await db.from("audit_logs").insert({
+      actor_user_id: admin.id,
+      action: "update_official_fpl_league",
+      entity_type: "competition_season",
+      entity_id: seasonId,
+      metadata: {
+        before: {
+          external_league_id: season.external_league_id,
+          fpl_league_code: previousSettings.fpl_league_code ?? null,
+          fpl_league_name: previousSettings.fpl_league_name ?? null,
+        },
+        after: {
+          external_league_id: leagueId,
+          fpl_league_code: leagueCode,
+          fpl_league_name: leagueName,
+        },
+      },
+    });
+    if (auditError) {
+      console.error("Unable to write the official FPL league audit log", auditError.message);
+    }
+  } catch (error) {
+    if (isRedirectSignal(error)) throw error;
+    redirectToFpl(
+      "error",
+      error instanceof Error ? error.message : "Unable to update the official FPL league.",
+      seasonId,
+    );
+  }
+
+  refresh();
+  redirectToFpl("success", "Official FPL league details updated everywhere.", seasonId);
 }
 
 export async function enableReadOnlyFplAction(formData: FormData) {
