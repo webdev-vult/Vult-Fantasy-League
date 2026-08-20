@@ -16,10 +16,12 @@ export function RegistrationForm({
   competitionSlug,
   registrationOpen,
   leagueCode,
+  closedMessage,
 }: {
   competitionSlug: string;
   registrationOpen: boolean;
   leagueCode: string | null;
+  closedMessage?: string;
 }) {
   const [state, formAction, pending] = useActionState(
     submitRegistrationAction,
@@ -48,7 +50,7 @@ export function RegistrationForm({
 
       {!registrationOpen ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-800">
-          Registration is not currently open. The form will be enabled when Vult opens the season.
+          {closedMessage ?? "Registration is not currently open. The form will be enabled when Vult opens the season."}
         </div>
       ) : null}
 

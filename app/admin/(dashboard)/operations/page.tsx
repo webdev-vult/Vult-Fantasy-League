@@ -5,6 +5,7 @@ import {
   publishRuleVersionAction,
   seedRoundsAction,
   togglePrizeAction,
+  updatePrizeAction,
   updateDraftRuleVersionAction,
   updateMonthlyPeriodAction,
   updateRoundAction,
@@ -121,6 +122,33 @@ function formatMoney(amount: number, currency: string) {
 
 function stringList(value: unknown) {
   return Array.isArray(value) ? value.map(String) : [];
+}
+
+function PrizeFormFields({
+  prize,
+  compact = false,
+}: {
+  prize?: Prize;
+  compact?: boolean;
+}) {
+  const mediumSpan = compact ? "" : "xl:col-span-2";
+  const fullSpan = compact ? "" : "sm:col-span-2 xl:col-span-4";
+
+  return (
+    <>
+      <label className="text-xs font-bold text-[var(--muted)]">Code<input name="code" required defaultValue={prize?.code ?? ""} placeholder="WEEKLY_WINNER" className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
+      <label className={`text-xs font-bold text-[var(--muted)] ${mediumSpan}`}>Name<input name="name" required defaultValue={prize?.name ?? ""} placeholder="Weekly Winner" className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
+      <label className="text-xs font-bold text-[var(--muted)]">Frequency<select name="frequency" defaultValue={prize?.frequency ?? "weekly"} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm capitalize"><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="overall">Overall</option><option value="special">Special</option></select></label>
+      <label className="text-xs font-bold text-[var(--muted)]">Position<input name="position" type="number" min="1" defaultValue={prize?.position ?? 1} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
+      <label className="text-xs font-bold text-[var(--muted)]">Amount<input name="amount" type="number" min="0" step="0.01" defaultValue={prize?.amount ?? 0} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
+      <label className="text-xs font-bold text-[var(--muted)]">Currency<input name="currency" defaultValue={prize?.currency ?? "SLE"} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm uppercase" /></label>
+      <label className="text-xs font-bold text-[var(--muted)]">Prize type<select name="prize_type" defaultValue={prize?.prize_type ?? "cash"} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm"><option value="cash">Cash</option><option value="non_cash">Non-cash</option><option value="mixed">Mixed</option></select></label>
+      <label className="text-xs font-bold text-[var(--muted)]">Payment method<input name="payment_method" defaultValue={prize?.payment_method ?? "vult_wallet"} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
+      <label className="text-xs font-bold text-[var(--muted)]">Payment deadline days<input name="payment_deadline_days" type="number" min="1" defaultValue={prize?.payment_deadline_days ?? 14} required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
+      <label className={`text-xs font-bold text-[var(--muted)] ${mediumSpan}`}>Non-cash description<input name="non_cash_description" defaultValue={prize?.non_cash_description ?? ""} placeholder="Official jersey" className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
+      <label className={`text-xs font-bold text-[var(--muted)] ${fullSpan}`}>Description<textarea name="description" rows={3} defaultValue={prize?.description ?? ""} className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
+    </>
+  );
 }
 
 function RuleFormFields({
@@ -585,14 +613,25 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                   <p className="mt-2 text-xs text-[var(--muted)]">Payment: {label(prize.payment_method)} within {prize.payment_deadline_days} days</p>
                   {prize.non_cash_description ? <p className="mt-2 text-xs text-[var(--muted)]">{prize.non_cash_description}</p> : null}
                   {canManagePrizes ? (
-                    <form action={togglePrizeAction} className="mt-4">
-                      <input type="hidden" name="id" value={prize.id} />
-                      <input type="hidden" name="competition_season_id" value={selectedSeason.id} />
-                      <input type="hidden" name="is_active" value={prize.is_active ? "false" : "true"} />
-                      <button className="rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs font-black text-[var(--brand)]">
-                        {prize.is_active ? "Deactivate" : "Activate"}
-                      </button>
-                    </form>
+                    <div className="mt-4 space-y-3">
+                      <form action={togglePrizeAction}>
+                        <input type="hidden" name="id" value={prize.id} />
+                        <input type="hidden" name="competition_season_id" value={selectedSeason.id} />
+                        <input type="hidden" name="is_active" value={prize.is_active ? "false" : "true"} />
+                        <button className="rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-xs font-black text-[var(--brand)]">
+                          {prize.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                      </form>
+                      <details className="rounded-xl border border-[var(--border)] bg-white p-3">
+                        <summary className="cursor-pointer text-xs font-black text-[var(--brand)]">Edit prize details</summary>
+                        <form action={updatePrizeAction} className="mt-4 grid gap-4">
+                          <input type="hidden" name="id" value={prize.id} />
+                          <input type="hidden" name="competition_season_id" value={selectedSeason.id} />
+                          <PrizeFormFields prize={prize} compact />
+                          <button className="rounded-xl bg-[var(--brand)] px-4 py-3 text-sm font-black text-white">Save prize changes</button>
+                        </form>
+                      </details>
+                    </div>
                   ) : null}
                 </article>
               ))}
@@ -604,17 +643,7 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                 <summary className="cursor-pointer font-black text-[var(--brand)]">Add prize category</summary>
                 <form action={createPrizeAction} className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <input type="hidden" name="competition_season_id" value={selectedSeason.id} />
-                  <label className="text-xs font-bold text-[var(--muted)]">Code<input name="code" required placeholder="WEEKLY_WINNER" className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                  <label className="text-xs font-bold text-[var(--muted)] xl:col-span-2">Name<input name="name" required placeholder="Weekly Winner" className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                  <label className="text-xs font-bold text-[var(--muted)]">Frequency<select name="frequency" defaultValue="weekly" className="mt-1 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm capitalize"><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="overall">Overall</option><option value="special">Special</option></select></label>
-                  <label className="text-xs font-bold text-[var(--muted)]">Position<input name="position" type="number" min="1" defaultValue="1" required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                  <label className="text-xs font-bold text-[var(--muted)]">Amount<input name="amount" type="number" min="0" step="0.01" defaultValue="0" required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                  <label className="text-xs font-bold text-[var(--muted)]">Currency<input name="currency" defaultValue="SLE" required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm uppercase" /></label>
-                  <label className="text-xs font-bold text-[var(--muted)]">Prize type<select name="prize_type" defaultValue="cash" className="mt-1 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm"><option value="cash">Cash</option><option value="non_cash">Non-cash</option><option value="mixed">Mixed</option></select></label>
-                  <label className="text-xs font-bold text-[var(--muted)]">Payment method<input name="payment_method" defaultValue="vult_wallet" required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                  <label className="text-xs font-bold text-[var(--muted)]">Payment deadline days<input name="payment_deadline_days" type="number" min="1" defaultValue="14" required className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                  <label className="text-xs font-bold text-[var(--muted)] xl:col-span-2">Non-cash description<input name="non_cash_description" placeholder="Official jersey" className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
-                  <label className="text-xs font-bold text-[var(--muted)] sm:col-span-2 xl:col-span-4">Description<textarea name="description" rows={2} className="mt-1 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm" /></label>
+                  <PrizeFormFields />
                   <button className="rounded-xl bg-[var(--brand)] px-4 py-3 text-sm font-black text-white sm:col-span-2 xl:col-span-4">Create prize</button>
                 </form>
               </details>
