@@ -23,7 +23,7 @@ const steps = [
   {
     title: "Submit one seasonal registration",
     description:
-      "Provide your contact details and enter the exact Team name and Manager name shown in the official Vult FPL mini-league during the published registration window. There is no age limit to play.",
+      "Provide your contact details and enter the Team name and Manager name shown in the official Vult FPL mini-league during the published registration window. Capitalization and separators may differ, and there is no age limit to play.",
   },
   {
     title: "Vult resolves your FPL Entry ID",
@@ -79,7 +79,7 @@ export default async function HowItWorksPage() {
         <div className="mt-12 rounded-[2rem] bg-[var(--brand-strong)] p-7 text-white sm:flex sm:items-center sm:justify-between sm:p-9">
           <div>
             <p className="text-sm font-bold text-blue-200">Ready to register?</p>
-            <h2 className="mt-2 text-2xl font-black">Join the Vult FPL mini-league and have your exact Team and Manager names ready.</h2>
+            <h2 className="mt-2 text-2xl font-black">Join the Vult FPL mini-league and have your Team and Manager names ready.</h2>
           </div>
           <Link href="/register" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-black text-[var(--brand)] sm:mt-0">
             View registration
