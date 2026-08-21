@@ -45,7 +45,7 @@ export default async function RegisterPage() {
           <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-200">Season registration</p>
           <h1 className="mt-4 text-3xl font-black tracking-[-0.04em]">{competition.name}</h1>
           <p className="mt-4 text-sm leading-7 text-blue-100">
-            Enter your contact information and the exact Team and Manager names shown in the official Vult FPL mini-league.
+            Enter your contact information and the Team and Manager names shown in the official Vult FPL mini-league. Capitalization and separators do not need to match exactly.
           </p>
 
           <dl className="mt-8 space-y-5 border-t border-white/10 pt-6 text-sm">

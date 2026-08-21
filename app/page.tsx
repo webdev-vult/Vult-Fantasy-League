@@ -30,7 +30,7 @@ const playSteps = [
   {
     number: "03",
     title: "Register your entry",
-    description: "Submit the exact Team and Manager names displayed in the official league.",
+    description: "Submit the Team and Manager names displayed in the official league. We will safely match minor formatting differences.",
   },
   {
     number: "04",
@@ -301,7 +301,7 @@ export default async function Home() {
           <div className="relative max-w-3xl">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--accent)]">Ready to play?</p>
             <h2 className="mt-4 text-4xl font-black tracking-[-0.05em] sm:text-5xl">Your squad is waiting. Your rivals are ready.</h2>
-            <p className="mt-4 leading-7 text-blue-100">Join the official Vult mini-league, register your exact team details and chase the top spot all season.</p>
+            <p className="mt-4 leading-7 text-blue-100">Join the official Vult mini-league, register your team details and chase the top spot all season.</p>
           </div>
           <div className="relative mt-8 flex flex-wrap gap-3 lg:mt-0 lg:justify-end">
             <Link href="/register" className="rounded-full bg-[var(--accent)] px-7 py-4 text-sm font-black text-[var(--brand-strong)]">Join Vult EPL Fantasy</Link>

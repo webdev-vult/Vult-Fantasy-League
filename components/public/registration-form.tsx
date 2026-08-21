@@ -97,7 +97,7 @@ export function RegistrationForm({
         <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--brand)]">Fantasy team</p>
         <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Match your official Vult league entry</h2>
         <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-          Join the official Vult FPL league first, then enter the <strong>Team name</strong> and <strong>Manager name</strong> exactly as shown under New entries or Standings.
+          Join the official Vult FPL league first, then enter your <strong>Team name</strong> and <strong>Manager name</strong> as shown under New entries or Standings.
           {leagueJoinUrl && leagueCode ? (
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <a
@@ -119,16 +119,16 @@ export function RegistrationForm({
           <label className="text-sm font-bold text-[var(--brand-strong)]">
             Team name <span className="text-red-600">*</span>
             <input className={inputClass} name="fpl_team_name" required minLength={2} maxLength={120} disabled={disabled} placeholder="Aluta - Continua FC" />
-            <span className="mt-2 block text-xs font-normal text-[var(--muted)]">Use the exact spelling, spacing and symbols shown in FPL.</span>
+            <span className="mt-2 block text-xs font-normal text-[var(--muted)]">Capital letters, spaces, hyphens and underscores do not need to match exactly.</span>
           </label>
           <label className="text-sm font-bold text-[var(--brand-strong)]">
             Manager name <span className="text-red-600">*</span>
             <input className={inputClass} name="fpl_manager_name" required minLength={3} maxLength={120} disabled={disabled} placeholder="Mohamed Adams Sesay" />
-            <span className="mt-2 block text-xs font-normal text-[var(--muted)]">Use the manager name displayed beside your team.</span>
+            <span className="mt-2 block text-xs font-normal text-[var(--muted)]">Small typing mistakes are accepted when your team can still be identified safely.</span>
           </label>
         </div>
         <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-          The platform will use both names to locate your team in the official Vult league and save the numeric FPL Entry ID automatically.
+          The platform uses both names to locate your team, then saves the official FPL spelling and numeric Entry ID automatically.
         </div>
       </section>
 

@@ -4,6 +4,7 @@ import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { resolveOfficialFplLeagueIdentity } from "@/lib/fantasy-providers/fpl-league-identity";
+import { normalizeIdentity } from "@/lib/fantasy-providers/identity-matching";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 export type RegistrationState = {
@@ -19,8 +20,8 @@ const SAFE_MESSAGES = [
   "Enter a valid phone number.",
   "Enter a valid email address.",
   "Your country is not eligible for this competition.",
-  "Enter your exact FPL team name.",
-  "Enter your exact FPL manager name.",
+  "Enter a valid FPL team name.",
+  "Enter a valid FPL manager name.",
   "The FPL team could not be resolved to a valid Entry ID.",
   "No matching team was found in the official Vult FPL league.",
   "More than one matching team was found. Contact Vult support.",
@@ -44,7 +45,7 @@ function safeErrorMessage(message: string) {
 }
 
 function normalizeRateLimitValue(input: string) {
-  return input.trim().toLowerCase().replace(/\s+/g, " ");
+  return normalizeIdentity(input);
 }
 
 function rateLimitKey(kind: string, rawValue: string) {

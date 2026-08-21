@@ -1,5 +1,6 @@
 import "server-only";
 import { fetchOfficialFplJson } from "./fpl-http";
+import { matchIdentity } from "./identity-matching";
 
 const MAX_PAGES = 500;
 const LEAGUE_CACHE_TTL_MS = 90_000;
@@ -43,16 +44,6 @@ export type FplLeagueIdentity = {
   leagueId: string;
   leagueName: string | null;
 };
-
-function normalizeIdentity(value: string) {
-  return value
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, " ")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-}
 
 function rowManagerName(row: LeagueRow) {
   if (row.player_name?.trim()) return row.player_name.trim();
@@ -174,29 +165,30 @@ export async function resolveOfficialFplLeagueIdentity(input: {
   const requestedManager = input.managerName.trim();
 
   if (requestedTeam.length < 2 || requestedTeam.length > 120) {
-    throw new Error("Enter your exact FPL team name.");
+    throw new Error("Enter a valid FPL team name.");
   }
   if (requestedManager.length < 3 || requestedManager.length > 120) {
-    throw new Error("Enter your exact FPL manager name.");
+    throw new Error("Enter a valid FPL manager name.");
   }
 
   const league = await getAllLeagueRows(input.leagueId);
-  const teamKey = normalizeIdentity(requestedTeam);
-  const managerKey = normalizeIdentity(requestedManager);
-  const matches = league.rows.filter(
-    (row) =>
-      normalizeIdentity(row.entry_name ?? "") === teamKey &&
-      normalizeIdentity(rowManagerName(row)) === managerKey,
+  const result = matchIdentity(
+    { teamName: requestedTeam, managerName: requestedManager },
+    league.rows.map((row) => ({
+      value: row,
+      teamName: row.entry_name ?? "",
+      managerName: rowManagerName(row),
+    })),
   );
 
-  if (matches.length === 0) {
+  if (result.status === "not_found") {
     throw new Error("No matching team was found in the official Vult FPL league.");
   }
-  if (matches.length > 1) {
+  if (result.status === "ambiguous") {
     throw new Error("More than one matching team was found. Contact Vult support.");
   }
 
-  const match = matches[0];
+  const match = result.candidate;
   if (!Number.isInteger(match.entry) || Number(match.entry) < 1) {
     throw new Error("The FPL team could not be resolved to a valid Entry ID.");
   }
