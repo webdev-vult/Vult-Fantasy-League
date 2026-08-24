@@ -178,6 +178,9 @@ export default async function Home() {
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-200">Official fixtures</p>
                 <h3 className="mt-2 text-2xl font-black">{gameweek.name}</h3>
               </div>
+              <Link href="/fixtures" className="shrink-0 text-sm font-black text-[var(--accent)] transition hover:text-white">
+                View all →
+              </Link>
             </div>
             {featuredFixtures.length ? (
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
