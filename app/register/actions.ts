@@ -2,9 +2,11 @@
 
 import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { resolveOfficialFplLeagueIdentity } from "@/lib/fantasy-providers/fpl-league-identity";
 import { normalizeIdentity } from "@/lib/fantasy-providers/identity-matching";
+import { queueRegistrationEmail } from "@/lib/email/smtp";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 export type RegistrationState = {
@@ -195,9 +197,20 @@ export async function submitRegistrationAction(
 
   const result = Array.isArray(data) ? data[0] : data;
   const reference = result?.registration_reference;
+  const registrationId = result?.registration_id;
 
   if (!reference) {
     return { error: "Your registration was received, but the confirmation reference was unavailable." };
+  }
+
+  if (registrationId) {
+    after(async () => {
+      try {
+        await queueRegistrationEmail(String(registrationId), "registration_received");
+      } catch (emailError) {
+        console.error("Registration confirmation email failed", emailError);
+      }
+    });
   }
 
   redirect(`/register/success?reference=${encodeURIComponent(reference)}`);

@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { isSmtpConfigured } from "@/lib/email/smtp";
 import {
   changeAnnouncementStatusAction,
   queueNotificationAction,
   recordNotificationDeliveryAction,
   saveAnnouncementAction,
   saveNotificationTemplateAction,
+  retryEmailDeliveryAction,
+  sendTestEmailAction,
 } from "./actions";
 
 type SearchParams = Promise<{ tab?: string; edit?: string; success?: string; error?: string }>;
@@ -105,6 +108,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
   const editingTemplate = templates.find((item) => item.id === query.edit) ?? null;
   const canContent = contentRoles.includes(admin.role);
   const canDelivery = deliveryRoles.includes(admin.role);
+  const smtpConfigured = isSmtpConfigured();
 
   const metrics = [
     ["Published", announcements.filter((item) => item.status === "published").length],
@@ -256,6 +260,14 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
 
       {tab === "outbox" ? (
         <section className="grid gap-7 xl:grid-cols-[0.8fr_1.2fr]">
+          <div className="rounded-[2rem] border border-[var(--border)] bg-white p-6 shadow-sm sm:p-8 xl:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div><p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">Email provider</p><h2 className="mt-2 text-xl font-black text-[var(--brand-strong)]">Gmail SMTP</h2></div>
+              <span className={`rounded-full border px-3 py-1.5 text-xs font-black ${smtpConfigured ? "border-green-200 bg-green-50 text-green-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}>{smtpConfigured ? "Configured" : "Configuration required"}</span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Send a test message after adding the SMTP variables to the Vercel environment.</p>
+            {canDelivery ? <form action={sendTestEmailAction} className="mt-4 flex flex-col gap-3 sm:flex-row"><input type="email" name="recipient" required placeholder="Test recipient email" className={`${inputClass} mt-0`} /><button disabled={!smtpConfigured} className="rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">Send test email</button></form> : null}
+          </div>
           <form action={queueNotificationAction} className="rounded-[2rem] border border-[var(--border)] bg-white p-6 shadow-sm sm:p-8">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">Manual composition</p>
             <h2 className="mt-3 text-2xl font-black text-[var(--brand-strong)]">Queue notification</h2>
@@ -278,6 +290,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
                 </div>
                 <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[var(--muted)]">{item.body}</p>
                 {item.failure_reason ? <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-800">{item.failure_reason}</p> : null}
+                {canDelivery && item.channel === "email" && !['sent','cancelled','skipped'].includes(item.status) ? <form action={retryEmailDeliveryAction} className="mt-4"><input type="hidden" name="notification_id" value={item.id} /><button disabled={!smtpConfigured} className="rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40">{item.status === "failed" ? "Retry with Gmail SMTP" : "Send with Gmail SMTP"}</button></form> : null}
                 {canDelivery && !['sent','cancelled','skipped'].includes(item.status) ? (
                   <form action={recordNotificationDeliveryAction} className="mt-5 grid gap-3 rounded-2xl bg-[var(--surface-soft)] p-4 sm:grid-cols-2">
                     <input type="hidden" name="notification_id" value={item.id} />
