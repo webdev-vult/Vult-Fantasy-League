@@ -16,12 +16,14 @@
     "@supabase/ssr": "0.12.3",
     "@supabase/supabase-js": "2.110.8",
     "next": "16.2.12",
+    "nodemailer": "^9.0.5",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^22.18.0",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "eslint": "^9.39.0",

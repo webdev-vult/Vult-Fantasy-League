@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { requireAdminRole } from "@/lib/auth/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
+import { queueRegistrationEmail } from "@/lib/email/smtp";
 
 const VERIFICATION_ROLES = [
   "super_admin",
@@ -325,7 +327,7 @@ export async function refreshDuplicateRiskAction(formData: FormData) {
 }
 
 export async function transitionRegistrationStatusAction(formData: FormData) {
-  await requireAdminRole(VERIFICATION_ROLES);
+  const admin = await requireAdminRole(VERIFICATION_ROLES);
   const registrationId = requiredText(formData, "registration_id", "Registration");
 
   try {
@@ -336,13 +338,31 @@ export async function transitionRegistrationStatusAction(formData: FormData) {
     );
     const supabase = await createServerSupabaseClient();
     const db = supabase as any;
+    const reason = optionalText(formData, "reason");
     const { error } = await db.rpc("transition_registration_status", {
       p_registration_id: registrationId,
       p_new_status: status,
-      p_reason: optionalText(formData, "reason"),
+      p_reason: reason,
     });
 
     if (error) throw new Error(error.message);
+
+    const emailEvents = {
+      approved: "registration_approved",
+      rejected: "registration_rejected",
+      suspended: "registration_suspended",
+      disqualified: "registration_disqualified",
+    } as const;
+    const event = emailEvents[status as keyof typeof emailEvents];
+    if (event) {
+      after(async () => {
+        try {
+          await queueRegistrationEmail(registrationId, event, { reason, createdBy: admin.id });
+        } catch (emailError) {
+          console.error("Registration status email failed", emailError);
+        }
+      });
+    }
   } catch (error) {
     redirectToRegistration(
       registrationId,

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdminRole } from "@/lib/auth/admin";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { deliverQueuedEmail, verifySmtpConnection } from "@/lib/email/smtp";
 
 const CONTENT_ROLES = ["super_admin", "content_manager"] as const;
 const DELIVERY_ROLES = ["super_admin", "content_manager", "support_officer"] as const;
@@ -163,4 +164,41 @@ export async function recordNotificationDeliveryAction(formData: FormData) {
 
   refreshCommunications();
   redirect(communicationUrl("success", "Delivery result recorded.", "outbox"));
+}
+
+export async function retryEmailDeliveryAction(formData: FormData) {
+  const admin = await requireAdminRole(DELIVERY_ROLES);
+  try {
+    await deliverQueuedEmail(required(formData, "notification_id", "Notification"), admin.id);
+  } catch (error) {
+    redirect(communicationUrl("error", error instanceof Error ? error.message : "Unable to send email.", "outbox"));
+  }
+  refreshCommunications();
+  redirect(communicationUrl("success", "Email sent through Gmail SMTP.", "outbox"));
+}
+
+export async function sendTestEmailAction(formData: FormData) {
+  const admin = await requireAdminRole(DELIVERY_ROLES);
+  try {
+    await verifySmtpConnection();
+    const recipient = required(formData, "recipient", "Test recipient");
+    const db = createAdminSupabaseClient() as any;
+    const { data, error } = await db.from("notification_outbox").insert({
+      channel: "email",
+      recipient,
+      subject: "Vult EPL Fantasy email test",
+      body: "Gmail SMTP is connected and transactional email delivery is working.",
+      status: "queued",
+      scheduled_at: new Date().toISOString(),
+      idempotency_key: `smtp-test:${admin.id}:${Date.now()}`,
+      created_by: admin.id,
+      metadata: { event: "smtp_test", delivery_provider: "gmail_smtp" },
+    }).select("id").single();
+    if (error || !data) throw new Error(error?.message ?? "Unable to queue the test email.");
+    await deliverQueuedEmail(data.id, admin.id);
+  } catch (error) {
+    redirect(communicationUrl("error", error instanceof Error ? error.message : "Unable to send test email.", "outbox"));
+  }
+  refreshCommunications();
+  redirect(communicationUrl("success", "Gmail SMTP test email sent successfully.", "outbox"));
 }
