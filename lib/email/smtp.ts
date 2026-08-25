@@ -136,14 +136,15 @@ export async function queueRegistrationEmail(
   const db = createAdminSupabaseClient() as any;
   const { data: registration, error: registrationError } = await db
     .from("registrations")
-    .select("id, public_reference, participant_id, competition_season_id, fpl_team_name, fpl_manager_name, status")
+    .select("id, public_reference, participant_id, competition_season_id, status")
     .eq("id", registrationId)
     .single();
   if (registrationError || !registration) throw new Error(registrationError?.message ?? "Registration not found.");
 
-  const [{ data: participant }, { data: season }, { data: template }] = await Promise.all([
+  const [{ data: participant }, { data: season }, { data: verification }, { data: template }] = await Promise.all([
     db.from("participants").select("full_name, email").eq("id", registration.participant_id).single(),
     db.from("competition_seasons").select("name").eq("id", registration.competition_season_id).single(),
+    db.from("registration_verifications").select("fpl_team_name, fpl_manager_name").eq("registration_id", registration.id).maybeSingle(),
     db.from("notification_templates").select("id, subject_template, body_template").eq("event_key", event).eq("status", "active").maybeSingle(),
   ]);
 
@@ -154,8 +155,8 @@ export async function queueRegistrationEmail(
   const variables: TemplateVariables = {
     participant_name: String(participant.full_name ?? "Participant"),
     registration_reference: String(registration.public_reference ?? ""),
-    fpl_team_name: String(registration.fpl_team_name ?? ""),
-    fpl_manager_name: String(registration.fpl_manager_name ?? ""),
+    fpl_team_name: String(verification?.fpl_team_name ?? ""),
+    fpl_manager_name: String(verification?.fpl_manager_name ?? ""),
     season_name: String(season?.name ?? "Vult EPL Fantasy"),
     registration_status: String(registration.status ?? ""),
     reason: options.reason?.trim() || "Contact Vult support if you require more information.",
