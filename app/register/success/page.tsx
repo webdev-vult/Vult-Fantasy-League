@@ -27,6 +27,13 @@ export default async function RegistrationSuccessPage({
             Vult will check your FPL Entry ID and duplicate-entry status before approving your registration. KYC Level 1 is checked only if you are selected for a weekly, monthly or overall prize.
           </p>
 
+          <div className="mx-auto mt-6 max-w-xl rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-4 text-left">
+            <p className="text-sm font-black text-[var(--brand)]">Check your email</p>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              A confirmation email is being sent to the address you provided. Check your inbox and spam folder. We will email you again after your registration is reviewed.
+            </p>
+          </div>
+
           <div className="mx-auto mt-8 max-w-md rounded-2xl bg-[var(--surface-soft)] p-5">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">Registration reference</p>
             <p className="mt-2 break-all text-2xl font-black tracking-[0.04em] text-[var(--brand)]">{reference || "Unavailable"}</p>
