@@ -15,12 +15,10 @@ const inputClass =
 export function RegistrationForm({
   competitionSlug,
   registrationOpen,
-  leagueCode,
   closedMessage,
 }: {
   competitionSlug: string;
   registrationOpen: boolean;
-  leagueCode: string | null;
   closedMessage?: string;
 }) {
   const [state, formAction, pending] = useActionState(
@@ -28,9 +26,6 @@ export function RegistrationForm({
     initialState,
   );
   const disabled = !registrationOpen || pending;
-  const leagueJoinUrl = leagueCode
-    ? `https://fantasy.premierleague.com/leagues/auto-join/${encodeURIComponent(leagueCode)}`
-    : null;
 
   return (
     <form action={formAction} className="space-y-8">
@@ -87,8 +82,8 @@ export function RegistrationForm({
             <input className={inputClass} type="tel" name="whatsapp_phone" disabled={disabled} placeholder="+232 76 000000" />
           </label>
           <label className="text-sm font-bold text-[var(--brand-strong)] md:col-span-2">
-            Email address
-            <input className={inputClass} type="email" name="email" disabled={disabled} autoComplete="email" placeholder="name@example.com" />
+            Email address <span className="text-red-600">*</span>
+            <input className={inputClass} type="email" name="email" required disabled={disabled} autoComplete="email" placeholder="name@example.com" />
           </label>
         </div>
       </section>
@@ -97,23 +92,7 @@ export function RegistrationForm({
         <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--brand)]">Fantasy team</p>
         <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Match your official Vult league entry</h2>
         <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-          Join the official Vult FPL league first, then enter your <strong>Team name</strong> and <strong>Manager name</strong> as shown under New entries or Standings.
-          {leagueJoinUrl && leagueCode ? (
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <a
-                href={leagueJoinUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-black text-white"
-              >
-                Join Vult FPL league
-              </a>
-            </div>
-          ) : (
-            <p className="mt-3 text-xs font-bold">
-              The league join code has not been published for this season yet.
-            </p>
-          )}
+          Enter your existing FPL <strong>Team name</strong> and <strong>Manager name</strong>. After this form is saved, the private Vult league link will appear on the confirmation page and will also be sent to your email.
         </div>
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <label className="text-sm font-bold text-[var(--brand-strong)]">
@@ -154,7 +133,7 @@ export function RegistrationForm({
       </section>
 
       <button type="submit" disabled={disabled} className="w-full rounded-2xl bg-[var(--brand)] px-6 py-4 text-sm font-black text-white shadow-xl shadow-blue-950/20 transition enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-slate-400">
-        {pending ? "Checking the official FPL league and submitting..." : registrationOpen ? "Submit registration" : "Registration not open"}
+        {pending ? "Saving your registration..." : registrationOpen ? "Register and get league link" : "Registration not open"}
       </button>
     </form>
   );

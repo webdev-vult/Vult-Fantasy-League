@@ -93,8 +93,11 @@ The intended operational flow is:
 | `NEXT_PUBLIC_APP_URL` | Browser-safe | Application base URL where required by application links |
 | `PRIMARY_COMPETITION_SLUG` | Server | Optional permanent competition selector; defaults to `vult-epl-fantasy-league` |
 | `FPL_BASE_URL` | Server | Optional FPL base URL override; code restricts it to the official FPL host |
+| `CRON_SECRET` | Server only | Long random secret used by Vercel to authorize the daily pending-FPL reconciliation job |
 
-The FPL league ID and join code are competition-season configuration and are not environment secrets.
+The FPL league ID and join code are competition-season configuration. The public registration page does not expose the join code: a participant receives the private auto-join link only after a registration has been saved, through the success page and confirmation email.
+
+Registrations that FPL has not yet published are retained with an `awaiting_fpl_sync` state. The daily Vercel job and the protected Admin “Check official FPL league now” action resolve the numeric Entry ID later. `eligible_from_round` records the first Gameweek whose deadline was still open when the Vult registration was received, and earlier rounds are excluded from weekly, monthly and overall calculations.
 
 ## Database workflow
 

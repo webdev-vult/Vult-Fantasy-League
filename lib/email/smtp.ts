@@ -6,6 +6,7 @@ import vultIcon from "@/components/public/Vult_icon.png";
 
 type RegistrationEmailEvent =
   | "registration_received"
+  | "registration_awaiting_fpl_sync"
   | "registration_approved"
   | "registration_rejected"
   | "registration_suspended"
@@ -50,8 +51,8 @@ function emailStatus(subject: string) {
 
 function buildBrandedEmail(subject: string, rawBody: string) {
   const body = normalizeLineBreaks(rawBody).trim();
-  const detailLabels = new Set(["Team", "Manager", "Reference", "Reason"]);
-  const actionLabels = new Set(["Leaderboard", "Fixtures", "Rules"]);
+  const detailLabels = new Set(["Team", "Manager", "Reference", "Reason", "Eligible from"]);
+  const actionLabels = new Set(["Leaderboard", "Fixtures", "Rules", "Join League"]);
   const details: Array<{ label: string; value: string }> = [];
   const actions: Array<{ label: string; url: string }> = [];
   const paragraphs: string[] = [];
@@ -84,7 +85,7 @@ function buildBrandedEmail(subject: string, rawBody: string) {
     ? `<div style="margin:26px 0 8px">${actions
         .map(
           ({ label, url }, index) =>
-            `<a href="${escapeHtml(url)}" style="display:inline-block;margin:0 8px 10px 0;padding:13px 20px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:800;${index === 0 ? "background:#70c5df;color:#071038" : "background:#0d163f;color:#ffffff"}">${escapeHtml(label === "Leaderboard" ? "View leaderboard" : label === "Fixtures" ? "View fixtures" : "Read rules")}</a>`,
+            `<a href="${escapeHtml(url)}" style="display:inline-block;margin:0 8px 10px 0;padding:13px 20px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:800;${index === 0 ? "background:#70c5df;color:#071038" : "background:#0d163f;color:#ffffff"}">${escapeHtml(label === "Leaderboard" ? "View leaderboard" : label === "Fixtures" ? "View fixtures" : label === "Join League" ? "Join Vult FPL league" : "Read rules")}</a>`,
         )
         .join("")}</div>`
     : "";
@@ -243,14 +244,14 @@ export async function queueRegistrationEmail(
   const db = createAdminSupabaseClient() as any;
   const { data: registration, error: registrationError } = await db
     .from("registrations")
-    .select("id, public_reference, participant_id, competition_season_id, status")
+    .select("id, public_reference, participant_id, competition_season_id, status, eligible_from_round, metadata")
     .eq("id", registrationId)
     .single();
   if (registrationError || !registration) throw new Error(registrationError?.message ?? "Registration not found.");
 
   const [{ data: participant }, { data: season }, { data: verification }, { data: template }] = await Promise.all([
     db.from("participants").select("full_name, email").eq("id", registration.participant_id).single(),
-    db.from("competition_seasons").select("name").eq("id", registration.competition_season_id).single(),
+    db.from("competition_seasons").select("name, settings").eq("id", registration.competition_season_id).single(),
     db.from("registration_verifications").select("fpl_team_name, fpl_manager_name").eq("registration_id", registration.id).maybeSingle(),
     db.from("notification_templates").select("id, subject_template, body_template").eq("event_key", event).eq("status", "active").maybeSingle(),
   ]);
@@ -259,6 +260,10 @@ export async function queueRegistrationEmail(
   if (!email) return null;
   if (!template) throw new Error(`The ${event} email template is not active.`);
 
+  const seasonSettings = season?.settings && typeof season.settings === "object" && !Array.isArray(season.settings)
+    ? season.settings as Record<string, unknown>
+    : {};
+  const leagueCode = String(seasonSettings.fpl_league_code ?? "").trim();
   const variables: TemplateVariables = {
     participant_name: String(participant.full_name ?? "Participant"),
     registration_reference: String(registration.public_reference ?? ""),
@@ -267,6 +272,10 @@ export async function queueRegistrationEmail(
     season_name: String(season?.name ?? "Vult EPL Fantasy"),
     registration_status: String(registration.status ?? ""),
     reason: options.reason?.trim() || "Contact Vult support if you require more information.",
+    eligible_from_gameweek: String(registration.eligible_from_round ?? "the next open Gameweek"),
+    league_join_url: leagueCode
+      ? `https://fantasy.premierleague.com/leagues/auto-join/${encodeURIComponent(leagueCode)}`
+      : appUrl("/register"),
     leaderboard_url: appUrl("/leaderboards"),
     fixtures_url: appUrl("/fixtures"),
     rules_url: appUrl("/rules"),

@@ -161,28 +161,41 @@ export async function submitRegistrationAction(
       managerName,
     });
 
-    const resolved = await resolveOfficialFplLeagueIdentity({
-      leagueId,
-      teamName,
-      managerName,
-    });
+    let resolved = null;
+    try {
+      resolved = await resolveOfficialFplLeagueIdentity({
+        leagueId,
+        teamName,
+        managerName,
+      });
+    } catch (lookupError) {
+      console.info(
+        "FPL identity is not published yet; preserving registration for reconciliation.",
+        lookupError instanceof Error ? lookupError.message : lookupError,
+      );
+    }
 
-    const response = await db.rpc("submit_public_registration", {
+    const commonInput = {
       p_competition_season_slug: competitionSlug,
       p_full_name: value(formData, "full_name"),
       p_phone: phone,
       p_whatsapp_phone: value(formData, "whatsapp_phone"),
       p_email: value(formData, "email"),
       p_country: value(formData, "country"),
-      p_fpl_entry_id: resolved.entryId,
-      p_fpl_team_name: resolved.teamName,
-      p_fpl_manager_name: resolved.managerName,
-      p_age_confirmed: false,
+      p_fpl_team_name: resolved?.teamName ?? teamName,
+      p_fpl_manager_name: resolved?.managerName ?? managerName,
       p_rules_consent: formData.get("rules_consent") === "on",
       p_privacy_consent: formData.get("privacy_consent") === "on",
       p_publicity_consent: formData.get("publicity_consent") === "on",
       p_honeypot: value(formData, "company"),
-    });
+    };
+    const response = resolved
+      ? await db.rpc("submit_public_registration", {
+          ...commonInput,
+          p_fpl_entry_id: resolved.entryId,
+          p_age_confirmed: false,
+        })
+      : await db.rpc("submit_public_pending_fpl_registration", commonInput);
 
     if (response.error) return { error: safeErrorMessage(response.error.message) };
     data = response.data;
@@ -198,6 +211,18 @@ export async function submitRegistrationAction(
   const result = Array.isArray(data) ? data[0] : data;
   const reference = result?.registration_reference;
   const registrationId = result?.registration_id;
+  const verificationState = result?.eligible_from_round ? "awaiting" : "verified";
+  let eligibleFromRound = result?.eligible_from_round;
+
+  if (registrationId && !eligibleFromRound) {
+    const db = createAdminSupabaseClient() as any;
+    const { data: savedRegistration } = await db
+      .from("registrations")
+      .select("eligible_from_round")
+      .eq("id", registrationId)
+      .maybeSingle();
+    eligibleFromRound = savedRegistration?.eligible_from_round;
+  }
 
   if (!reference) {
     return { error: "Your registration was received, but the confirmation reference was unavailable." };
@@ -206,12 +231,22 @@ export async function submitRegistrationAction(
   if (registrationId) {
     after(async () => {
       try {
-        await queueRegistrationEmail(String(registrationId), "registration_received");
+        await queueRegistrationEmail(
+          String(registrationId),
+          verificationState === "awaiting"
+            ? "registration_awaiting_fpl_sync"
+            : "registration_received",
+        );
       } catch (emailError) {
         console.error("Registration confirmation email failed", emailError);
       }
     });
   }
 
-  redirect(`/register/success?reference=${encodeURIComponent(reference)}`);
+  const successParams = new URLSearchParams({
+    reference: String(reference),
+    verification: verificationState,
+  });
+  if (eligibleFromRound) successParams.set("eligible_from_round", String(eligibleFromRound));
+  redirect(`/register/success?${successParams.toString()}`);
 }

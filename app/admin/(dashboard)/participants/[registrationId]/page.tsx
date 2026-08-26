@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   addRegistrationNoteAction,
+  reconcilePendingFplRegistrationAction,
   refreshDuplicateRiskAction,
   transitionRegistrationStatusAction,
   updateParticipantProfileAction,
@@ -23,6 +24,8 @@ type RegistrationDetail = {
   rejection_reason: string | null;
   rules_version: number;
   registration_channel: string;
+  eligible_from_round: number | null;
+  metadata: unknown;
   competition_season_id: string;
   participant: {
     id: string;
@@ -160,6 +163,8 @@ export default async function ParticipantDetailPage({
         rejection_reason,
         rules_version,
         registration_channel,
+        eligible_from_round,
+        metadata,
         competition_season_id,
         participant:participants!registrations_participant_id_fkey(
           id, full_name, email, phone, whatsapp_phone, country, status, created_at
@@ -349,9 +354,21 @@ export default async function ParticipantDetailPage({
               </div>
             ) : (
               <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
-                This entry is not currently marked automatically verified. Review the registration audit trail before approval.
+                <p className="font-black">Awaiting publication by FPL.</p>
+                <p className="mt-1 text-xs leading-5">
+                  The registration is preserved and will be checked automatically. It is eligible from Gameweek {registration.eligible_from_round ?? "the next open Gameweek"}; earlier rounds will not count.
+                </p>
               </div>
             )}
+
+            {!fplVerified && canVerify ? (
+              <form action={reconcilePendingFplRegistrationAction} className="mt-5">
+                <input type="hidden" name="registration_id" value={registration.id} />
+                <button className="rounded-xl border border-[var(--brand)] px-4 py-2.5 text-sm font-black text-[var(--brand)]">
+                  Check official FPL league now
+                </button>
+              </form>
+            ) : null}
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl bg-[#f7f8fc] p-4">
