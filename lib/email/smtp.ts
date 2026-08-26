@@ -2,6 +2,7 @@ import "server-only";
 
 import nodemailer from "nodemailer";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import vultIcon from "@/components/public/vult-icon-email.png";
 
 type RegistrationEmailEvent =
   | "registration_received"
@@ -11,6 +12,110 @@ type RegistrationEmailEvent =
   | "registration_disqualified";
 
 type TemplateVariables = Record<string, string>;
+
+function normalizeLineBreaks(value: string) {
+  return value.replace(/\\r\\n|\\n|\\r/g, "\n");
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function configuredAppOrigin() {
+  const value =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.VERCEL_URL ||
+    "";
+
+  if (!value) return "";
+  return `${/^https?:\/\//i.test(value) ? "" : "https://"}${value}`.replace(/\/$/, "");
+}
+
+function emailStatus(subject: string) {
+  const value = subject.toLowerCase();
+  if (value.includes("approved")) return { label: "Entry approved", color: "#087a55", background: "#d9f7eb" };
+  if (value.includes("received")) return { label: "Registration received", color: "#125f78", background: "#dff5fb" };
+  if (value.includes("suspended")) return { label: "Entry suspended", color: "#9a5b00", background: "#fff1cc" };
+  if (value.includes("rejected") || value.includes("disqualified") || value.includes("not approved")) {
+    return { label: "Registration update", color: "#a22727", background: "#fde5e5" };
+  }
+  return { label: "Vult EPL Fantasy update", color: "#125f78", background: "#dff5fb" };
+}
+
+function buildBrandedEmail(subject: string, rawBody: string) {
+  const body = normalizeLineBreaks(rawBody).trim();
+  const detailLabels = new Set(["Team", "Manager", "Reference", "Reason"]);
+  const actionLabels = new Set(["Leaderboard", "Fixtures", "Rules"]);
+  const details: Array<{ label: string; value: string }> = [];
+  const actions: Array<{ label: string; url: string }> = [];
+  const paragraphs: string[] = [];
+
+  for (const block of body.split(/\n{2,}/)) {
+    const remaining: string[] = [];
+    for (const line of block.split("\n").map((value) => value.trim()).filter(Boolean)) {
+      const separator = line.indexOf(":");
+      const label = separator > 0 ? line.slice(0, separator).trim() : "";
+      const value = separator > 0 ? line.slice(separator + 1).trim() : "";
+      if (detailLabels.has(label) && value) details.push({ label, value });
+      else if (actionLabels.has(label) && /^https?:\/\//i.test(value)) actions.push({ label, url: value });
+      else if (line !== "Vult EPL Fantasy") remaining.push(line);
+    }
+    if (remaining.length) paragraphs.push(remaining.join(" "));
+  }
+
+  const status = emailStatus(subject);
+  const origin = configuredAppOrigin();
+  const logoUrl = origin ? `${origin}${vultIcon.src}` : "";
+  const detailsHtml = details.length
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:24px 0;background:#f3f7fb;border:1px solid #dce5f0;border-radius:16px;overflow:hidden">${details
+        .map(
+          ({ label, value }) =>
+            `<tr><td style="padding:12px 18px;color:#64748b;font-size:13px;font-weight:700;width:110px;border-bottom:1px solid #e4ebf3">${escapeHtml(label)}</td><td style="padding:12px 18px;color:#0d163f;font-size:14px;font-weight:700;border-bottom:1px solid #e4ebf3">${escapeHtml(value)}</td></tr>`,
+        )
+        .join("")}</table>`
+    : "";
+  const actionsHtml = actions.length
+    ? `<div style="margin:26px 0 8px">${actions
+        .map(
+          ({ label, url }, index) =>
+            `<a href="${escapeHtml(url)}" style="display:inline-block;margin:0 8px 10px 0;padding:13px 20px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:800;${index === 0 ? "background:#70c5df;color:#071038" : "background:#0d163f;color:#ffffff"}">${escapeHtml(label === "Leaderboard" ? "View leaderboard" : label === "Fixtures" ? "View fixtures" : "Read rules")}</a>`,
+        )
+        .join("")}</div>`
+    : "";
+
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head>
+<body style="margin:0;padding:0;background:#f3f6fa;font-family:Arial,Helvetica,sans-serif;color:#1f2937">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0">${escapeHtml(subject)}</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f6fa"><tr><td align="center" style="padding:32px 14px">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border:1px solid #e1e8f0;border-radius:22px;overflow:hidden;box-shadow:0 10px 30px rgba(13,22,63,.08)">
+      <tr><td style="padding:24px 30px;background:#0d163f">
+        <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+          ${logoUrl ? `<td style="padding-right:12px"><img src="${escapeHtml(logoUrl)}" width="42" height="42" alt="Vult" style="display:block;width:42px;height:42px;object-fit:contain;border-radius:8px;background:#ffffff;padding:4px"></td>` : ""}
+          <td><div style="color:#ffffff;font-size:19px;font-weight:800">Vult EPL Fantasy</div><div style="margin-top:3px;color:#9eddf0;font-size:12px;letter-spacing:1.6px;text-transform:uppercase">Play. Compete. Win.</div></td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding:34px 30px 30px">
+        <span style="display:inline-block;padding:7px 11px;border-radius:999px;background:${status.background};color:${status.color};font-size:11px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase">${escapeHtml(status.label)}</span>
+        <h1 style="margin:18px 0 22px;color:#0d163f;font-size:28px;line-height:1.2;letter-spacing:-.5px">${escapeHtml(subject)}</h1>
+        ${paragraphs.map((paragraph) => `<p style="margin:0 0 16px;color:#475569;font-size:16px;line-height:1.65">${escapeHtml(paragraph)}</p>`).join("")}
+        ${detailsHtml}
+        ${actionsHtml}
+      </td></tr>
+      <tr><td style="padding:22px 30px;background:#f8fafc;border-top:1px solid #e5ebf2;color:#64748b;font-size:12px;line-height:1.6">
+        This is an automated message about your Vult EPL Fantasy registration. Please keep your registration reference for future support.<br>
+        <strong style="color:#0d163f">Vult EPL Fantasy</strong>
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>`;
+}
 
 function smtpConfig() {
   const host = process.env.SMTP_HOST;
@@ -38,12 +143,13 @@ function smtpConfig() {
 }
 
 function render(template: string, variables: TemplateVariables) {
-  return template.replace(/{{\s*([a-z0-9_]+)\s*}}/gi, (_match, key: string) => variables[key] ?? "");
+  return normalizeLineBreaks(
+    template.replace(/{{\s*([a-z0-9_]+)\s*}}/gi, (_match, key: string) => variables[key] ?? ""),
+  );
 }
 
 function appUrl(path = "") {
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
-  return `${base}${path}`;
+  return `${configuredAppOrigin()}${path}`;
 }
 
 export function isSmtpConfigured() {
@@ -100,7 +206,8 @@ export async function deliverQueuedEmail(notificationId: string, attemptedBy: st
       replyTo: config.replyTo,
       to: notification.recipient,
       subject: notification.subject ?? "Vult EPL Fantasy update",
-      text: notification.body,
+      text: normalizeLineBreaks(notification.body),
+      html: buildBrandedEmail(notification.subject ?? "Vult EPL Fantasy update", notification.body),
     });
 
   } catch (sendError) {
