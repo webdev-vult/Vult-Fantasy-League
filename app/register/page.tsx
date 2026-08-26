@@ -65,12 +65,6 @@ export default async function RegisterPage() {
               <dt className="text-blue-200">Official league</dt>
               <dd className="mt-1 font-black">{leagueName}</dd>
             </div>
-            {competition.fplLeagueCode ? (
-              <div>
-                <dt className="text-blue-200">League code</dt>
-                <dd className="mt-1 font-black text-[var(--accent)]">{competition.fplLeagueCode}</dd>
-              </div>
-            ) : null}
             <div>
               <dt className="text-blue-200">Submission status</dt>
               <dd className="mt-1 font-black text-[var(--accent)]">Pending verification after submission</dd>
@@ -86,7 +80,6 @@ export default async function RegisterPage() {
           <RegistrationForm
             competitionSlug={competition.slug}
             registrationOpen={registrationOpen}
-            leagueCode={competition.fplLeagueCode}
             closedMessage={registrationClosedMessage}
           />
         </div>

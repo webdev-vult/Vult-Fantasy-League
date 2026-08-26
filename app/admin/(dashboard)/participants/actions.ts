@@ -7,6 +7,7 @@ import { requireAdminRole } from "@/lib/auth/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
 import { queueRegistrationEmail } from "@/lib/email/smtp";
+import { reconcilePendingFplRegistrations } from "@/lib/registration/reconcile-pending-fpl";
 
 const VERIFICATION_ROLES = [
   "super_admin",
@@ -221,6 +222,36 @@ export async function updateFplVerificationAction(formData: FormData) {
 
   refreshParticipantRoutes(registrationId);
   redirectToRegistration(registrationId, "success", "FPL verification updated.");
+}
+
+export async function reconcilePendingFplRegistrationAction(formData: FormData) {
+  await requireAdminRole(VERIFICATION_ROLES);
+  const registrationId = requiredText(formData, "registration_id", "Registration");
+  let outcome: "resolved" | "review_required" | "waiting" = "waiting";
+
+  try {
+    const result = await reconcilePendingFplRegistrations(registrationId);
+    if (result.resolved > 0) {
+      refreshParticipantRoutes(registrationId);
+      outcome = "resolved";
+    } else if (result.reviewRequired > 0) {
+      outcome = "review_required";
+    }
+  } catch (error) {
+    redirectToRegistration(
+      registrationId,
+      "error",
+      error instanceof Error ? error.message : "Unable to check the official FPL league.",
+    );
+  }
+
+  if (outcome === "resolved") {
+    redirectToRegistration(registrationId, "success", "The official FPL entry was found and verified.");
+  }
+  if (outcome === "review_required") {
+    redirectToRegistration(registrationId, "error", "More than one possible FPL entry was found. Review the identity manually.");
+  }
+  redirectToRegistration(registrationId, "error", "FPL has not published this new entry yet. The registration remains safely recorded and will be checked again automatically.");
 }
 
 export async function updateVultVerificationAction(formData: FormData) {
