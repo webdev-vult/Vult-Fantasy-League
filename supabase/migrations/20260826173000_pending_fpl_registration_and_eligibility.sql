@@ -221,7 +221,7 @@ begin
     v_registration_id, 'pending', v_manager_name, v_team_name,
     format('Awaiting publication by the official FPL league API. Eligible from Gameweek %s.', v_eligible_from_round)
   )
-  on conflict (registration_id) do update
+  on conflict on constraint registration_verifications_registration_id_key do update
   set fpl_status = 'pending',
       fpl_manager_name = excluded.fpl_manager_name,
       fpl_team_name = excluded.fpl_team_name,
