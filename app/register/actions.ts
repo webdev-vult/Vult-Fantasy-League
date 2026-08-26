@@ -197,7 +197,16 @@ export async function submitRegistrationAction(
         })
       : await db.rpc("submit_public_pending_fpl_registration", commonInput);
 
-    if (response.error) return { error: safeErrorMessage(response.error.message) };
+    if (response.error) {
+      console.error("Public registration RPC failed", {
+        code: response.error.code,
+        message: response.error.message,
+        details: response.error.details,
+        hint: response.error.hint,
+        verificationState: resolved ? "verified" : "awaiting_fpl_sync",
+      });
+      return { error: safeErrorMessage(response.error.message) };
+    }
     data = response.data;
   } catch (error) {
     console.error("Public registration error", error);
