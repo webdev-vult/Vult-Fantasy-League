@@ -2,7 +2,7 @@ import "server-only";
 
 import nodemailer from "nodemailer";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
-import vultIcon from "@/components/public/vult-icon-email.png";
+import vultIcon from "@/components/public/Vult_icon.png";
 
 type RegistrationEmailEvent =
   | "registration_received"
