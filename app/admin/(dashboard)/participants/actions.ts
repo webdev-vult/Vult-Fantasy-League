@@ -63,8 +63,13 @@ function redirectToRegistration(
   registrationId: string,
   type: "success" | "error",
   message: string,
+  formData: FormData,
 ): never {
   const params = new URLSearchParams({ [type]: message });
+  const returnTo = text(formData, "return_to");
+  if (returnTo.startsWith("/admin/participants?") || returnTo === "/admin/participants") {
+    params.set("return_to", returnTo);
+  }
   redirect(`/admin/participants/${registrationId}?${params.toString()}`);
 }
 
@@ -141,11 +146,12 @@ export async function updateParticipantProfileAction(formData: FormData) {
       registrationId,
       "error",
       error instanceof Error ? error.message : "Unable to update participant details.",
+      formData,
     );
   }
 
   refreshParticipantRoutes(registrationId);
-  redirectToRegistration(registrationId, "success", "Participant details updated.");
+  redirectToRegistration(registrationId, "success", "Participant details updated.", formData);
 }
 
 // Kept as a protected exception workflow for authorised administrators.
@@ -217,11 +223,12 @@ export async function updateFplVerificationAction(formData: FormData) {
       registrationId,
       "error",
       error instanceof Error ? error.message : "Unable to update FPL verification.",
+      formData,
     );
   }
 
   refreshParticipantRoutes(registrationId);
-  redirectToRegistration(registrationId, "success", "FPL verification updated.");
+  redirectToRegistration(registrationId, "success", "FPL verification updated.", formData);
 }
 
 export async function reconcilePendingFplRegistrationAction(formData: FormData) {
@@ -242,16 +249,17 @@ export async function reconcilePendingFplRegistrationAction(formData: FormData) 
       registrationId,
       "error",
       error instanceof Error ? error.message : "Unable to check the official FPL league.",
+      formData,
     );
   }
 
   if (outcome === "resolved") {
-    redirectToRegistration(registrationId, "success", "The official FPL entry was found and verified.");
+    redirectToRegistration(registrationId, "success", "The official FPL entry was found and verified.", formData);
   }
   if (outcome === "review_required") {
-    redirectToRegistration(registrationId, "error", "More than one possible FPL entry was found. Review the identity manually.");
+    redirectToRegistration(registrationId, "error", "More than one possible FPL entry was found. Review the identity manually.", formData);
   }
-  redirectToRegistration(registrationId, "error", "FPL has not published this new entry yet. The registration remains safely recorded and will be checked again automatically.");
+  redirectToRegistration(registrationId, "error", "FPL has not published this new entry yet. The registration remains safely recorded and will be checked again automatically.", formData);
 }
 
 export async function updateVultVerificationAction(formData: FormData) {
@@ -326,11 +334,12 @@ export async function updateVultVerificationAction(formData: FormData) {
       registrationId,
       "error",
       error instanceof Error ? error.message : "Unable to update Vult KYC verification.",
+      formData,
     );
   }
 
   refreshParticipantRoutes(registrationId);
-  redirectToRegistration(registrationId, "success", "Vult KYC verification updated.");
+  redirectToRegistration(registrationId, "success", "Vult KYC verification updated.", formData);
 }
 
 export async function refreshDuplicateRiskAction(formData: FormData) {
@@ -350,11 +359,12 @@ export async function refreshDuplicateRiskAction(formData: FormData) {
       registrationId,
       "error",
       error instanceof Error ? error.message : "Unable to refresh duplicate risk.",
+      formData,
     );
   }
 
   refreshParticipantRoutes(registrationId);
-  redirectToRegistration(registrationId, "success", "Duplicate-risk check refreshed.");
+  redirectToRegistration(registrationId, "success", "Duplicate-risk check refreshed.", formData);
 }
 
 export async function transitionRegistrationStatusAction(formData: FormData) {
@@ -399,11 +409,12 @@ export async function transitionRegistrationStatusAction(formData: FormData) {
       registrationId,
       "error",
       error instanceof Error ? error.message : "Unable to change registration status.",
+      formData,
     );
   }
 
   refreshParticipantRoutes(registrationId);
-  redirectToRegistration(registrationId, "success", "Registration status updated.");
+  redirectToRegistration(registrationId, "success", "Registration status updated.", formData);
 }
 
 export async function addRegistrationNoteAction(formData: FormData) {
@@ -445,9 +456,10 @@ export async function addRegistrationNoteAction(formData: FormData) {
       registrationId,
       "error",
       error instanceof Error ? error.message : "Unable to add note.",
+      formData,
     );
   }
 
   refreshParticipantRoutes(registrationId);
-  redirectToRegistration(registrationId, "success", "Internal note added.");
+  redirectToRegistration(registrationId, "success", "Internal note added.", formData);
 }

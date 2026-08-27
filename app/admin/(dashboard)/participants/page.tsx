@@ -246,6 +246,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
     vult: params.vult,
     risk: params.risk,
   };
+  const currentListHref = buildPageHref(filterParams, page);
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -411,7 +412,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                         <p className="mt-1 text-xs text-[var(--muted)]">{formatDate(registration.registered_at)}</p>
                       </td>
                       <td className="px-5 py-5">
-                        <Link href={`/admin/participants/${registration.id}`} className="inline-flex rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-black text-white">
+                        <Link href={`/admin/participants/${registration.id}?return_to=${encodeURIComponent(currentListHref)}`} className="inline-flex rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-black text-white">
                           Review
                         </Link>
                       </td>
