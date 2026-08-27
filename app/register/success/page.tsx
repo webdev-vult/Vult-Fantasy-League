@@ -46,6 +46,7 @@ export default async function RegistrationSuccessPage({
   const leagueJoinUrl = leagueCode
     ? `https://fantasy.premierleague.com/leagues/auto-join/${encodeURIComponent(leagueCode)}`
     : null;
+  const whatsappCommunityUrl = "https://chat.whatsapp.com/IFvVnASstyA81vXpl1ahsy?s=cl&p=i&mlu=4";
 
   return (
     <main className="min-h-screen bg-[#f4f6fb]">
@@ -83,6 +84,26 @@ export default async function RegistrationSuccessPage({
               >
                 Join Vult FPL league
               </a>
+            </div>
+          ) : null}
+
+          {registration ? (
+            <div className="mx-auto mt-6 max-w-xl rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-5">
+              <p className="text-sm font-black text-emerald-900">Stay informed on WhatsApp</p>
+              <p className="mt-2 text-sm leading-6 text-emerald-800">
+                Join the Vult EPL Fantasy community for Gameweek reminders, fixture updates, score notices and competition announcements.
+              </p>
+              <a
+                href={whatsappCommunityUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex rounded-xl bg-[#25D366] px-5 py-3 text-sm font-black text-[#072b18]"
+              >
+                Join WhatsApp community
+              </a>
+              <p className="mt-3 text-xs leading-5 text-emerald-700">
+                Official registration and approval decisions will still be sent by email and shown on the platform.
+              </p>
             </div>
           ) : null}
 
