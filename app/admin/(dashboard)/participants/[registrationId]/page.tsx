@@ -12,7 +12,7 @@ import {
 } from "../actions";
 
 type PageParams = Promise<{ registrationId: string }>;
-type SearchParams = Promise<{ success?: string; error?: string }>;
+type SearchParams = Promise<{ success?: string; error?: string; return_to?: string }>;
 
 type RegistrationDetail = {
   id: string;
@@ -129,6 +129,19 @@ function badgeClasses(value: string) {
   return "border-blue-200 bg-blue-50 text-blue-800";
 }
 
+function participantsReturnHref(value: string | undefined) {
+  if (!value) return "/admin/participants";
+  try {
+    const url = new URL(value, "https://admin.local");
+    if (url.origin === "https://admin.local" && url.pathname === "/admin/participants") {
+      return `${url.pathname}${url.search}`;
+    }
+  } catch {
+    // Fall back to the unfiltered participant list for malformed input.
+  }
+  return "/admin/participants";
+}
+
 function stringArray(value: unknown) {
   return Array.isArray(value) ? value.map(String) : [];
 }
@@ -147,6 +160,7 @@ export default async function ParticipantDetailPage({
   const admin = await requireAdmin();
   const { registrationId } = await params;
   const messages = await searchParams;
+  const returnTo = participantsReturnHref(messages.return_to);
   const supabase = await createServerSupabaseClient();
   const db = supabase as any;
 
@@ -234,7 +248,7 @@ export default async function ParticipantDetailPage({
     <div className="mx-auto max-w-7xl space-y-8">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <Link href="/admin/participants" className="text-sm font-black text-[var(--brand)]">
+          <Link href={returnTo} className="text-sm font-black text-[var(--brand)]">
             ← Back to participants
           </Link>
           <p className="mt-6 text-sm font-black uppercase tracking-[0.18em] text-[var(--brand)]">
@@ -302,6 +316,7 @@ export default async function ParticipantDetailPage({
             {participant ? (
               <form action={updateParticipantProfileAction} className="mt-6 grid gap-4 sm:grid-cols-2">
                 <input type="hidden" name="registration_id" value={registration.id} />
+                <input type="hidden" name="return_to" value={returnTo} />
                 <input type="hidden" name="participant_id" value={participant.id} />
                 <label className="sm:col-span-2">
                   <span className={labelClass}>Full legal name</span>
@@ -364,6 +379,7 @@ export default async function ParticipantDetailPage({
             {!fplVerified && canVerify ? (
               <form action={reconcilePendingFplRegistrationAction} className="mt-5">
                 <input type="hidden" name="registration_id" value={registration.id} />
+                <input type="hidden" name="return_to" value={returnTo} />
                 <button className="rounded-xl border border-[var(--brand)] px-4 py-2.5 text-sm font-black text-[var(--brand)]">
                   Check official FPL league now
                 </button>
@@ -407,6 +423,7 @@ export default async function ParticipantDetailPage({
 
             <form action={updateVultVerificationAction} className="mt-6 grid gap-4 sm:grid-cols-2">
               <input type="hidden" name="registration_id" value={registration.id} />
+              <input type="hidden" name="return_to" value={returnTo} />
               <label className="block">
                 <span className={labelClass}>Vult account status</span>
                 <select name="vult_status" defaultValue={verification?.vult_status ?? "pending"} disabled={!canVerify} className={inputClass}>
@@ -469,6 +486,7 @@ export default async function ParticipantDetailPage({
             {canVerify ? (
               <form action={refreshDuplicateRiskAction} className="mt-5">
                 <input type="hidden" name="registration_id" value={registration.id} />
+                <input type="hidden" name="return_to" value={returnTo} />
                 <button className="rounded-xl border border-[var(--brand)] px-4 py-2.5 text-sm font-black text-[var(--brand)]">Refresh duplicate-risk check</button>
               </form>
             ) : null}
@@ -482,6 +500,7 @@ export default async function ParticipantDetailPage({
             </p>
             <form action={transitionRegistrationStatusAction} className="mt-6 space-y-4">
               <input type="hidden" name="registration_id" value={registration.id} />
+              <input type="hidden" name="return_to" value={returnTo} />
               <label className="block">
                 <span className={labelClass}>New status</span>
                 <select name="new_status" defaultValue={registration.status} disabled={!canVerify} className={inputClass}>
@@ -525,6 +544,7 @@ export default async function ParticipantDetailPage({
             {canAddNotes ? (
               <form action={addRegistrationNoteAction} className="mt-5 space-y-4">
                 <input type="hidden" name="registration_id" value={registration.id} />
+                <input type="hidden" name="return_to" value={returnTo} />
                 <label className="block">
                   <span className={labelClass}>Note type</span>
                   <select name="note_type" defaultValue="internal" className={inputClass}>

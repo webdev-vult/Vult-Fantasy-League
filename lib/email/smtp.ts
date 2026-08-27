@@ -52,7 +52,7 @@ function emailStatus(subject: string) {
 function buildBrandedEmail(subject: string, rawBody: string) {
   const body = normalizeLineBreaks(rawBody).trim();
   const detailLabels = new Set(["Team", "Manager", "Reference", "Reason", "Eligible from"]);
-  const actionLabels = new Set(["Leaderboard", "Fixtures", "Rules", "Join League"]);
+  const actionLabels = new Set(["Leaderboard", "Fixtures", "Rules", "Join League", "WhatsApp Community"]);
   const details: Array<{ label: string; value: string }> = [];
   const actions: Array<{ label: string; url: string }> = [];
   const paragraphs: string[] = [];
@@ -85,7 +85,7 @@ function buildBrandedEmail(subject: string, rawBody: string) {
     ? `<div style="margin:26px 0 8px">${actions
         .map(
           ({ label, url }, index) =>
-            `<a href="${escapeHtml(url)}" style="display:inline-block;margin:0 8px 10px 0;padding:13px 20px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:800;${index === 0 ? "background:#70c5df;color:#071038" : "background:#0d163f;color:#ffffff"}">${escapeHtml(label === "Leaderboard" ? "View leaderboard" : label === "Fixtures" ? "View fixtures" : label === "Join League" ? "Join Vult FPL league" : "Read rules")}</a>`,
+            `<a href="${escapeHtml(url)}" style="display:inline-block;margin:0 8px 10px 0;padding:13px 20px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:800;${label === "WhatsApp Community" ? "background:#25d366;color:#072b18" : index === 0 ? "background:#70c5df;color:#071038" : "background:#0d163f;color:#ffffff"}">${escapeHtml(label === "Leaderboard" ? "View leaderboard" : label === "Fixtures" ? "View fixtures" : label === "Join League" ? "Join Vult FPL league" : label === "WhatsApp Community" ? "Join WhatsApp community" : "Read rules")}</a>`,
         )
         .join("")}</div>`
     : "";
@@ -279,6 +279,7 @@ export async function queueRegistrationEmail(
     leaderboard_url: appUrl("/leaderboards"),
     fixtures_url: appUrl("/fixtures"),
     rules_url: appUrl("/rules"),
+    whatsapp_community_url: "https://chat.whatsapp.com/IFvVnASstyA81vXpl1ahsy?s=cl&p=i&mlu=4",
   };
   const idempotencyKey = `registration:${registration.id}:${event}:email`;
   const { data: queued, error: queueError } = await db
