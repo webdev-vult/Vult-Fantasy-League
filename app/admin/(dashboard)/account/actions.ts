@@ -54,5 +54,15 @@ export async function changeAdminPasswordAction(formData: FormData) {
     redirect("/admin/account?error=password_flag_update_failed");
   }
 
+  // The access guard reads must_change_password from the signed-in user's JWT.
+  // Admin metadata changes do not rewrite an already-issued access token, so
+  // refresh the session before redirecting away from the account page.
+  const { error: refreshError } = await supabase.auth.refreshSession();
+
+  if (refreshError) {
+    await supabase.auth.signOut();
+    redirect("/admin/login?notice=password_changed_sign_in_again");
+  }
+
   redirect("/admin/account?success=password_changed");
 }

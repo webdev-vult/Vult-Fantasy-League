@@ -14,6 +14,7 @@ const errorMessages: Record<string, string> = {
 type AdminLoginPageProps = {
   searchParams: Promise<{
     error?: string;
+    notice?: string;
     next?: string;
   }>;
 };
@@ -37,6 +38,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
   }
 
   const errorMessage = params.error ? errorMessages[params.error] : null;
+  const passwordChanged = params.notice === "password_changed_sign_in_again";
   const nextPath = params.next?.startsWith("/admin") ? params.next : "/admin";
 
   return (
@@ -95,6 +97,15 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
               className="mt-7 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
             >
               {errorMessage}
+            </div>
+          ) : null}
+
+          {passwordChanged ? (
+            <div
+              role="status"
+              className="mt-7 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-800"
+            >
+              Your password was changed successfully. Sign in once more with your new password to continue.
             </div>
           ) : null}
 
