@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdminRole } from "@/lib/auth/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { syncOfficialFplMonthlyPeriods } from "@/lib/fantasy-providers/sync-fpl-monthly-periods";
 import type { Json } from "@/types/database";
 
 const MANAGEMENT_ROLES = ["super_admin", "competition_manager"] as const;
@@ -399,6 +400,33 @@ export async function updateMonthlyPeriodAction(formData: FormData) {
 
   refreshOperations();
   redirectWithMessage("success", "Monthly period updated successfully.", competitionSeasonId);
+}
+
+export async function syncMonthlyPeriodsFromFplAction(formData: FormData) {
+  const admin = await requireAdminRole(MANAGEMENT_ROLES);
+  const competitionSeasonId = requiredText(formData, "competition_season_id", "Competition season");
+
+  try {
+    const result = await syncOfficialFplMonthlyPeriods(competitionSeasonId, admin.id);
+    const message = [
+      `${result.created} created`,
+      `${result.updated} updated`,
+      `${result.unchanged} unchanged`,
+      `${result.blocked} protected`,
+    ].join(", ");
+    refreshOperations();
+    redirectWithMessage(
+      "success",
+      `Official FPL monthly periods synchronised: ${message}. Rankings were recalculated.`,
+      competitionSeasonId,
+    );
+  } catch (error) {
+    redirectWithMessage(
+      "error",
+      error instanceof Error ? error.message : "Unable to synchronise monthly periods from FPL.",
+      competitionSeasonId,
+    );
+  }
 }
 
 export async function createRuleVersionAction(formData: FormData) {
