@@ -4,6 +4,7 @@ import {
   createRuleVersionAction,
   publishRuleVersionAction,
   seedRoundsAction,
+  syncMonthlyPeriodsFromFplAction,
   togglePrizeAction,
   updatePrizeAction,
   updateDraftRuleVersionAction,
@@ -24,6 +25,7 @@ type CompetitionSeason = {
   name: string;
   status: string;
   rules_version: number;
+  data_provider: string;
 };
 
 type Round = {
@@ -45,6 +47,9 @@ type MonthlyPeriod = {
   start_round: number;
   end_round: number;
   status: string;
+  source: string;
+  calendar_month: string | null;
+  last_synced_at: string | null;
 };
 
 type CompetitionRule = {
@@ -215,7 +220,7 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
 
   const { data: seasonRows, error: seasonsError } = await db
     .from("competition_seasons")
-    .select("id, name, status, rules_version")
+    .select("id, name, status, rules_version, data_provider")
     .order("created_at", { ascending: false });
 
   const competitionSeasons = (seasonRows ?? []) as CompetitionSeason[];
@@ -241,7 +246,7 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
         .order("external_round_id"),
       db
         .from("monthly_periods")
-        .select("id, name, description, start_round, end_round, status")
+        .select("id, name, description, start_round, end_round, status, source, calendar_month, last_synced_at")
         .eq("competition_season_id", selectedSeasonId)
         .order("start_round"),
       db
@@ -473,9 +478,23 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
 
           <section className="grid gap-6 xl:grid-cols-2">
             <article className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm sm:p-8">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--brand)]">Monthly periods</p>
-              <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Prize-period ranges</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Periods cannot overlap and are defined by Gameweek numbers rather than calendar dates.</p>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--brand)]">Monthly periods</p>
+                  <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Prize-period ranges</h2>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    FPL seasons are grouped automatically by official Gameweek deadline month in Sierra Leone time.
+                  </p>
+                </div>
+                {canManage && selectedSeason.data_provider === "approved_fpl" ? (
+                  <form action={syncMonthlyPeriodsFromFplAction}>
+                    <input type="hidden" name="competition_season_id" value={selectedSeason.id} />
+                    <button className="whitespace-nowrap rounded-xl bg-[var(--brand)] px-4 py-3 text-sm font-black text-white">
+                      Sync from FPL now
+                    </button>
+                  </form>
+                ) : null}
+              </div>
 
               <div className="mt-6 space-y-3">
                 {monthlyPeriods.map((period) => (
@@ -484,6 +503,11 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                       <div>
                         <p className="font-black text-[var(--brand-strong)]">{period.name}</p>
                         <p className="mt-1 text-sm text-[var(--muted)]">GW{period.start_round}–GW{period.end_round}</p>
+                        {period.source === "official_fpl_deadlines" ? (
+                          <p className="mt-2 text-xs font-bold text-green-700">
+                            Official FPL deadlines{period.last_synced_at ? ` · synced ${formatDate(period.last_synced_at)}` : ""}
+                          </p>
+                        ) : null}
                         {period.description ? <p className="mt-2 text-xs text-[var(--muted)]">{period.description}</p> : null}
                       </div>
                       {canManage ? (
@@ -504,7 +528,7 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                 {!monthlyPeriods.length ? <p className="text-sm text-[var(--muted)]">No monthly periods configured.</p> : null}
               </div>
 
-              {canManage ? (
+              {canManage && selectedSeason.data_provider !== "approved_fpl" ? (
                 <details className="mt-6 rounded-2xl border border-[var(--border)] p-4">
                   <summary className="cursor-pointer font-black text-[var(--brand)]">Add monthly period</summary>
                   <form action={createMonthlyPeriodAction} className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -517,6 +541,10 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                     <button className="rounded-xl bg-[var(--brand)] px-4 py-3 text-sm font-black text-white sm:col-span-2">Create period</button>
                   </form>
                 </details>
+              ) : canManage ? (
+                <p className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-900">
+                  Manual Gameweek ranges are disabled for the approved FPL provider. Use the official calendar sync above.
+                </p>
               ) : null}
             </article>
 
