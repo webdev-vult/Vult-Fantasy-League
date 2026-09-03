@@ -38,6 +38,14 @@ type FplBootstrap = {
   [key: string]: unknown;
 };
 
+export type ApprovedFplCalendarEvent = {
+  id: number;
+  name: string;
+  deadline_time: string;
+  finished: boolean;
+  data_checked: boolean;
+};
+
 type FplHistoryEvent = {
   event?: number;
   points?: number;
@@ -441,6 +449,30 @@ export async function testApprovedFplConnection(input?: {
         }
       : null,
   };
+}
+
+export async function fetchApprovedFplCalendar(input?: {
+  timeoutSeconds?: number;
+  baseUrl?: string;
+}): Promise<ApprovedFplCalendarEvent[]> {
+  const baseUrl = resolveBaseUrl(input?.baseUrl);
+  const timeoutSeconds = Math.min(120, Math.max(5, input?.timeoutSeconds ?? 30));
+  const bootstrap = await fetchJson<FplBootstrap>(baseUrl, "/bootstrap-static/", timeoutSeconds);
+  const events = Array.isArray(bootstrap.events) ? bootstrap.events : [];
+
+  return events.flatMap((event) => {
+    const deadline = typeof event.deadline_time === "string" ? event.deadline_time : "";
+    if (!Number.isInteger(event.id) || event.id < 1 || !deadline) return [];
+    return [{
+      id: event.id,
+      name: typeof event.name === "string" && event.name.trim()
+        ? event.name.trim()
+        : `Gameweek ${event.id}`,
+      deadline_time: deadline,
+      finished: event.finished === true,
+      data_checked: event.data_checked === true,
+    }];
+  });
 }
 
 export class ApprovedFplProvider implements FantasyDataProvider<ApprovedFplProviderInput> {
