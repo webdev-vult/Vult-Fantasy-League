@@ -45,6 +45,20 @@ type LeaderboardRow = {
   metadata: Record<string, unknown>;
 };
 
+type Round = {
+  id: string;
+  external_round_id: number;
+  name: string;
+};
+
+type MonthlyPeriod = {
+  id: string;
+  name: string;
+  start_round: number;
+  end_round: number;
+  calendar_month: string | null;
+};
+
 const scopes = ["overall", "round", "monthly"] as const;
 const pageSize = 25;
 
@@ -62,6 +76,38 @@ function movement(value: number) {
   return { label: "—", className: "text-[var(--muted)]" };
 }
 
+function monthLabel(period: MonthlyPeriod) {
+  if (period.calendar_month) {
+    return new Intl.DateTimeFormat("en-GB", {
+      month: "long",
+      year: "numeric",
+      timeZone: "Africa/Freetown",
+    }).format(new Date(`${period.calendar_month}T12:00:00Z`));
+  }
+
+  return period.name.replace(/\s+(game\s*week|prize period)$/i, "");
+}
+
+function publicationLabel(
+  publication: Publication,
+  roundMap: Map<string, Round>,
+  periodMap: Map<string, MonthlyPeriod>,
+) {
+  if (publication.scope === "round" && publication.round_id) {
+    const round = roundMap.get(publication.round_id);
+    return round ? `Gameweek ${round.external_round_id} Leaderboard` : "Gameweek Leaderboard";
+  }
+
+  if (publication.scope === "monthly" && publication.monthly_period_id) {
+    const period = periodMap.get(publication.monthly_period_id);
+    return period
+      ? `${monthLabel(period)} Monthly Leaderboard (GW${period.start_round}–GW${period.end_round})`
+      : "Monthly Leaderboard";
+  }
+
+  return "Overall Leaderboard";
+}
+
 export default async function LeaderboardsPage({ searchParams }: { searchParams: SearchParams }) {
   const competition = await getPublicCompetition();
   const params = await searchParams;
@@ -73,12 +119,16 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
 
   let publications: Publication[] = [];
   let selectedPublication: Publication | undefined;
+  let roundMap = new Map<string, Round>();
+  let periodMap = new Map<string, MonthlyPeriod>();
   let rows: LeaderboardRow[] = [];
   let totalRows = 0;
   let loadError: string | null = null;
 
   if (competition.id) {
     try {
+      // Database types are intentionally narrowed after each public query below.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = createAdminSupabaseClient() as any;
       const { data: publicationRows, error: publicationError } = await db
         .from("leaderboard_publications")
@@ -92,6 +142,21 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
 
       if (publicationError) throw new Error(publicationError.message);
       publications = (publicationRows ?? []) as Publication[];
+      const roundIds = [...new Set(publications.flatMap((item) => item.round_id ? [item.round_id] : []))];
+      const periodIds = [...new Set(publications.flatMap((item) => item.monthly_period_id ? [item.monthly_period_id] : []))];
+      const [{ data: roundRows, error: roundError }, { data: periodRows, error: periodError }] = await Promise.all([
+        roundIds.length
+          ? db.from("rounds").select("id, external_round_id, name").in("id", roundIds)
+          : Promise.resolve({ data: [], error: null }),
+        periodIds.length
+          ? db.from("monthly_periods").select("id, name, start_round, end_round, calendar_month").in("id", periodIds)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      if (roundError) throw new Error(roundError.message);
+      if (periodError) throw new Error(periodError.message);
+      roundMap = new Map(((roundRows ?? []) as Round[]).map((round) => [round.id, round]));
+      periodMap = new Map(((periodRows ?? []) as MonthlyPeriod[]).map((period) => [period.id, period]));
       selectedPublication = publications.find((item) => item.id === params.publication) ?? publications[0];
 
       if (selectedPublication) {
@@ -179,7 +244,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
                 Published snapshot
                 <select name="publication" defaultValue={selectedPublication?.id} className="mt-2 w-full rounded-xl border border-[var(--border)] px-3 py-3 text-sm font-bold normal-case tracking-normal text-[var(--brand-strong)]">
                   {publications.map((publication) => (
-                    <option key={publication.id} value={publication.id}>{publication.title} · v{publication.revision}</option>
+                    <option key={publication.id} value={publication.id}>{publicationLabel(publication, roundMap, periodMap)} · v{publication.revision}</option>
                   ))}
                 </select>
               </label>
@@ -203,7 +268,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
             <div className="flex flex-col gap-3 border-b border-[var(--border)] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">{selectedScope === "round" ? "Gameweek" : selectedScope} leaderboard</p>
-                <h2 className="mt-1 text-2xl font-black text-[var(--brand-strong)]">{selectedPublication.title}</h2>
+                <h2 className="mt-1 text-2xl font-black text-[var(--brand-strong)]">{publicationLabel(selectedPublication, roundMap, periodMap)}</h2>
               </div>
               <p className="text-sm font-bold text-[var(--muted)]">{totalRows} ranked entries</p>
             </div>
