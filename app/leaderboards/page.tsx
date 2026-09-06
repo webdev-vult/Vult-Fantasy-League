@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: "Published Gameweek, monthly and overall Vult Fantasy standings.",
 };
 
+export const dynamic = "force-dynamic";
+
 type SearchParams = Promise<{
   scope?: string;
   publication?: string;
@@ -30,8 +32,8 @@ type Publication = {
 };
 
 type LeaderboardRow = {
-  id: number;
-  rank: number;
+  id: number | string;
+  rank: number | null;
   previous_rank: number | null;
   movement: number;
   display_name: string;
@@ -43,6 +45,30 @@ type LeaderboardRow = {
   weekly_eligible: boolean;
   is_tied: boolean;
   metadata: Record<string, unknown>;
+  awaitingScore?: boolean;
+};
+
+type ApprovedRegistration = {
+  id: string;
+};
+
+type FantasyEntry = {
+  registration_id: string;
+  manager_name: string | null;
+  team_name: string | null;
+};
+
+type SeasonScore = {
+  id: string;
+  registration_id: string;
+  effective_points: number;
+  provider_total_points: number;
+  gameweeks_counted: number;
+  rank: number | null;
+  previous_rank: number | null;
+  movement: number;
+  is_provisional: boolean;
+  calculated_at: string;
 };
 
 type Round = {
@@ -124,12 +150,106 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
   let rows: LeaderboardRow[] = [];
   let totalRows = 0;
   let loadError: string | null = null;
+  let liveOverallUpdatedAt: string | null = null;
+  let liveOverallIsProvisional = false;
+  let liveOverallGameweeks = 0;
 
   if (competition.id) {
     try {
       // Database types are intentionally narrowed after each public query below.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = createAdminSupabaseClient() as any;
+      if (selectedScope === "overall") {
+        const [registrationResult, scoreResult] = await Promise.all([
+          db
+            .from("registrations")
+            .select("id")
+            .eq("competition_season_id", competition.id)
+            .eq("status", "approved"),
+          db
+            .from("season_scores")
+            .select(
+              "id, registration_id, effective_points, provider_total_points, gameweeks_counted, rank, previous_rank, movement, is_provisional, calculated_at",
+            )
+            .eq("competition_season_id", competition.id)
+            .order("rank", { ascending: true }),
+        ]);
+
+        if (registrationResult.error) throw new Error(registrationResult.error.message);
+        if (scoreResult.error) throw new Error(scoreResult.error.message);
+
+        const approved = (registrationResult.data ?? []) as ApprovedRegistration[];
+        const scores = (scoreResult.data ?? []) as SeasonScore[];
+        const registrationIds = approved.map((item) => item.id);
+        const entryResult = registrationIds.length
+          ? await db
+              .from("fantasy_entries")
+              .select("registration_id, manager_name, team_name")
+              .in("registration_id", registrationIds)
+          : { data: [], error: null };
+
+        if (entryResult.error) throw new Error(entryResult.error.message);
+        const entryMap = new Map(
+          ((entryResult.data ?? []) as FantasyEntry[]).map((item) => [item.registration_id, item]),
+        );
+        const scoreMap = new Map(scores.map((item) => [item.registration_id, item]));
+
+        const pointsFrequency = new Map<number, number>();
+        scores.forEach((score) => {
+          pointsFrequency.set(
+            score.effective_points,
+            (pointsFrequency.get(score.effective_points) ?? 0) + 1,
+          );
+        });
+
+        const liveRows = approved
+          .map((registration): LeaderboardRow => {
+            const entry = entryMap.get(registration.id);
+            const score = scoreMap.get(registration.id);
+            return {
+              id: score?.id ?? registration.id,
+              rank: score?.rank ?? null,
+              previous_rank: score?.previous_rank ?? null,
+              movement: score?.movement ?? 0,
+              display_name: entry?.manager_name ?? "Manager name awaiting FPL sync",
+              team_name: entry?.team_name ?? null,
+              points: score?.effective_points ?? 0,
+              provider_total_points: score?.provider_total_points ?? 0,
+              gameweeks_counted: score?.gameweeks_counted ?? 0,
+              chip_used: null,
+              weekly_eligible: true,
+              is_tied: Boolean(
+                score && (pointsFrequency.get(score.effective_points) ?? 0) > 1,
+              ),
+              metadata: {},
+              awaitingScore: !score,
+            };
+          })
+          .sort((a, b) => {
+            if (a.rank === null && b.rank === null) return a.display_name.localeCompare(b.display_name);
+            if (a.rank === null) return 1;
+            if (b.rank === null) return -1;
+            return a.rank - b.rank;
+          });
+
+        const normalizedQuery = query.toLocaleLowerCase();
+        const filteredRows = normalizedQuery
+          ? liveRows.filter((row) =>
+              `${row.display_name} ${row.team_name ?? ""}`.toLocaleLowerCase().includes(normalizedQuery),
+            )
+          : liveRows;
+        totalRows = filteredRows.length;
+        rows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+        liveOverallUpdatedAt = scores.reduce<string | null>(
+          (latest, score) => (!latest || score.calculated_at > latest ? score.calculated_at : latest),
+          null,
+        );
+        liveOverallIsProvisional = scores.some((score) => score.is_provisional);
+        liveOverallGameweeks = scores.reduce(
+          (maximum, score) => Math.max(maximum, score.gameweeks_counted),
+          0,
+        );
+      } else {
       const { data: publicationRows, error: publicationError } = await db
         .from("leaderboard_publications")
         .select(
@@ -179,6 +299,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
         if (error) throw new Error(error.message);
         rows = (data ?? []) as LeaderboardRow[];
         totalRows = count ?? 0;
+      }
       }
     } catch (error) {
       loadError = error instanceof Error ? error.message : "Unable to load the leaderboard.";
@@ -236,7 +357,25 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
           <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-800">{loadError}</div>
         ) : null}
 
-        {publications.length ? (
+        {selectedScope === "overall" ? (
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+            <form method="get" className="grid gap-3 rounded-3xl border border-[var(--border)] bg-white p-5 shadow-sm sm:grid-cols-[1fr_auto]">
+              <input type="hidden" name="scope" value="overall" />
+              <label className="text-xs font-black uppercase tracking-[0.12em] text-[var(--muted)]">
+                Search manager or team
+                <input name="q" defaultValue={query} placeholder="Search..." className="mt-2 w-full rounded-xl border border-[var(--border)] px-3 py-3 text-sm font-medium normal-case tracking-normal" />
+              </label>
+              <button className="rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-black text-white">Apply</button>
+            </form>
+            <div className="rounded-2xl border border-[var(--border)] bg-white px-5 py-4 text-sm shadow-sm">
+              <p className="font-black text-[var(--brand-strong)]">{liveOverallIsProvisional ? "Live · Provisional" : "Live standings"}</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                {liveOverallGameweeks ? `Updated through Gameweek ${liveOverallGameweeks}` : "Awaiting first synchronized score"}
+              </p>
+              {liveOverallUpdatedAt ? <p className="mt-1 text-xs text-[var(--muted)]">Last calculated {formatDate(liveOverallUpdatedAt)}</p> : null}
+            </div>
+          </div>
+        ) : publications.length ? (
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
             <form method="get" className="grid gap-3 rounded-3xl border border-[var(--border)] bg-white p-5 shadow-sm sm:grid-cols-[1fr_1fr_auto]">
               <input type="hidden" name="scope" value={selectedScope} />
@@ -263,14 +402,16 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
           </div>
         ) : null}
 
-        {selectedPublication ? (
+        {selectedScope === "overall" || selectedPublication ? (
           <section className="overflow-hidden rounded-3xl border border-[var(--border)] bg-white shadow-sm">
             <div className="flex flex-col gap-3 border-b border-[var(--border)] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">{selectedScope === "round" ? "Gameweek" : selectedScope} leaderboard</p>
-                <h2 className="mt-1 text-2xl font-black text-[var(--brand-strong)]">{publicationLabel(selectedPublication, roundMap, periodMap)}</h2>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">{selectedScope === "overall" ? "Live season" : selectedScope === "round" ? "Gameweek" : selectedScope} leaderboard</p>
+                <h2 className="mt-1 text-2xl font-black text-[var(--brand-strong)]">{selectedScope === "overall" ? "Live Overall Standings" : publicationLabel(selectedPublication!, roundMap, periodMap)}</h2>
               </div>
-              <p className="text-sm font-bold text-[var(--muted)]">{totalRows} ranked entries</p>
+              <p className="text-sm font-bold text-[var(--muted)]">
+                {totalRows} {selectedScope === "overall" ? "approved" : "ranked"} entries
+              </p>
             </div>
 
             {rows.length ? (
@@ -290,13 +431,13 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
                     {rows.map((row) => {
                       const move = movement(row.movement);
                       return (
-                        <tr key={row.id} className={row.rank <= 3 ? "bg-amber-50/40" : ""}>
-                          <td className="px-6 py-5"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand)] text-sm font-black text-white">{row.rank}</span></td>
+                        <tr key={row.id} className={row.rank !== null && row.rank <= 3 ? "bg-amber-50/40" : ""}>
+                          <td className="px-6 py-5"><span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-black ${row.awaitingScore ? "bg-slate-100 text-slate-600" : "bg-[var(--brand)] text-white"}`}>{row.rank ?? "—"}</span></td>
                           <td className="px-6 py-5"><p className="font-black text-[var(--brand-strong)]">{row.display_name}</p><p className="mt-1 text-sm text-[var(--muted)]">{row.team_name ?? "Team name not published"}</p></td>
                           <td className={`px-6 py-5 text-sm font-black ${move.className}`}>{move.label}</td>
                           <td className="px-6 py-5 text-sm font-bold text-[var(--muted)]">{row.gameweeks_counted}</td>
                           <td className="px-6 py-5 text-2xl font-black text-[var(--brand-strong)]">{row.points}</td>
-                          <td className="px-6 py-5"><div className="flex flex-wrap gap-2">{row.is_tied ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">Ordered by point arrival</span> : null}<span className="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-800">Eligible</span>{row.chip_used ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-800">{row.chip_used}</span> : null}</div></td>
+                          <td className="px-6 py-5"><div className="flex flex-wrap gap-2">{row.is_tied ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">Ordered by point arrival</span> : null}{row.awaitingScore ? <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">Awaiting first score</span> : <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-800">Eligible</span>}{row.chip_used ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-800">{row.chip_used}</span> : null}</div></td>
                         </tr>
                       );
                     })}
