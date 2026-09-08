@@ -38,7 +38,7 @@ const steps = [
   {
     title: "Compete across the season",
     description:
-      "Approved participants can appear in weekly, monthly and overall rankings after official score data is validated and published.",
+      "Weekly prizes begin from your eligible Gameweek. Once approved, monthly standings include every official FPL Gameweek in that calendar month, while overall standings use your official cumulative FPL season total.",
   },
   {
     title: "Winner review and payment",

@@ -584,6 +584,7 @@ export class ApprovedFplProvider implements FantasyDataProvider<ApprovedFplProvi
                 }
               : null,
             entry_history: historyRow,
+            history_current: historyRows,
             active_chip: result.picks.active_chip ?? null,
             automatic_subs: result.picks.automatic_subs ?? [],
             picks: result.picks.picks ?? [],
@@ -594,6 +595,7 @@ export class ApprovedFplProvider implements FantasyDataProvider<ApprovedFplProvi
           provider_entry_id: result.entry.provider_entry_id,
           official_league_standing: leagueStanding,
           entry_history: historyRow,
+          history_current: historyRows,
           active_chip: result.picks.active_chip ?? null,
           automatic_subs: result.picks.automatic_subs ?? [],
           picks: result.picks.picks ?? [],

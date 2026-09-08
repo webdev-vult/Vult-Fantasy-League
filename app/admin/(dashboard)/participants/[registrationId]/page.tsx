@@ -371,7 +371,7 @@ export default async function ParticipantDetailPage({
               <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
                 <p className="font-black">Awaiting publication by FPL.</p>
                 <p className="mt-1 text-xs leading-5">
-                  The registration is preserved and will be checked automatically. It is eligible from Gameweek {registration.eligible_from_round ?? "the next open Gameweek"}; earlier rounds will not count.
+                  The registration is preserved and will be checked automatically. Weekly prize eligibility begins from Gameweek {registration.eligible_from_round ?? "the next open Gameweek"}. Once approved, monthly standings include the full official FPL calendar month and overall standings use the official FPL season total.
                 </p>
               </div>
             )}
