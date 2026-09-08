@@ -73,6 +73,19 @@ function redirectToRegistration(
   redirect(`/admin/participants/${registrationId}?${params.toString()}`);
 }
 
+function redirectToParticipantList(
+  type: "success" | "error",
+  message: string,
+  formData: FormData,
+): never {
+  const returnTo = text(formData, "return_to");
+  const destination = returnTo.startsWith("/admin/participants?")
+    ? new URL(returnTo, "https://admin.local")
+    : new URL("/admin/participants", "https://admin.local");
+  destination.searchParams.set(type, message);
+  redirect(`${destination.pathname}?${destination.searchParams.toString()}`);
+}
+
 function refreshParticipantRoutes(registrationId: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/participants");
@@ -260,6 +273,36 @@ export async function reconcilePendingFplRegistrationAction(formData: FormData) 
     redirectToRegistration(registrationId, "error", "More than one possible FPL entry was found. Review the identity manually.", formData);
   }
   redirectToRegistration(registrationId, "error", "FPL has not published this new entry yet. The registration remains safely recorded and will be checked again automatically.", formData);
+}
+
+export async function reconcileAllPendingFplRegistrationsAction(formData: FormData) {
+  const admin = await requireAdminRole(VERIFICATION_ROLES);
+  let result: Awaited<ReturnType<typeof reconcilePendingFplRegistrations>>;
+
+  try {
+    result = await reconcilePendingFplRegistrations({
+      actorUserId: admin.id,
+      source: "admin_bulk",
+      maxDurationMs: 240_000,
+    });
+  } catch (error) {
+    redirectToParticipantList(
+      "error",
+      error instanceof Error ? error.message : "Unable to check pending FPL registrations.",
+      formData,
+    );
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/participants");
+  const suffix = result.stoppedEarly
+    ? ` The safe time limit was reached; ${result.remaining} remain for the next automatic run.`
+    : ` ${result.remaining} registration${result.remaining === 1 ? " remains" : "s remain"} pending.`;
+  redirectToParticipantList(
+    "success",
+    `Checked ${result.checked} registration${result.checked === 1 ? "" : "s"}: ${result.resolved} verified, ${result.reviewRequired} need review, and ${result.waiting} are still awaiting FPL.${suffix}`,
+    formData,
+  );
 }
 
 export async function updateVultVerificationAction(formData: FormData) {

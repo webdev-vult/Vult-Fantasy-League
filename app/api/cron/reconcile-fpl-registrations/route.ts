@@ -2,6 +2,7 @@ import { reconcilePendingFplRegistrations } from "@/lib/registration/reconcile-p
 import { syncAllOfficialFplMonthlyPeriods } from "@/lib/fantasy-providers/sync-fpl-monthly-periods";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -10,10 +11,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [registrations, monthlyPeriods] = await Promise.all([
-      reconcilePendingFplRegistrations(),
-      syncAllOfficialFplMonthlyPeriods(),
-    ]);
+    const registrations = await reconcilePendingFplRegistrations({
+      source: "cron",
+      maxDurationMs: 240_000,
+    });
+    const monthlyPeriods = await syncAllOfficialFplMonthlyPeriods();
     return Response.json({ ok: true, registrations, monthlyPeriods });
   } catch (error) {
     console.error("Scheduled FPL maintenance failed", error);
