@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { reconcileAllPendingFplRegistrationsAction } from "./actions";
 
 const PAGE_SIZE = 20;
 
@@ -12,6 +13,8 @@ type SearchParams = Promise<{
   vult?: string;
   risk?: string;
   page?: string;
+  success?: string;
+  error?: string;
 }>;
 
 type CompetitionSeason = {
@@ -49,6 +52,8 @@ type ParticipantRow = {
     vult_kyc_level: number;
     duplicate_risk: string;
     duplicate_checked_at: string | null;
+    fpl_checked_at: string | null;
+    fpl_notes: string | null;
   } | null;
   competition_season: {
     id: string;
@@ -175,7 +180,8 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
         provider_entry_id, manager_name, team_name, verified_at
       ),
       verification:registration_verifications${verificationJoin}(
-        fpl_status, vult_status, vult_kyc_level, duplicate_risk, duplicate_checked_at
+        fpl_status, vult_status, vult_kyc_level, duplicate_risk, duplicate_checked_at,
+        fpl_checked_at, fpl_notes
       ),
       competition_season:competition_seasons!registrations_competition_season_id_fkey(
         id, name, status
@@ -280,6 +286,18 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
         </div>
       ) : null}
 
+      {params.success ? (
+        <div className="rounded-2xl border border-green-200 bg-green-50 px-5 py-4 text-sm font-bold text-green-800">
+          {params.success}
+        </div>
+      ) : null}
+
+      {params.error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-800">
+          {params.error}
+        </div>
+      ) : null}
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           [allCount.count ?? 0, "Total registrations"],
@@ -354,12 +372,22 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
       </form>
 
       <section className="overflow-hidden rounded-3xl border border-[var(--border)] bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
+        <div className="flex flex-col gap-3 border-b border-[var(--border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-black text-[var(--brand-strong)]">Registrations</h2>
             <p className="mt-1 text-xs text-[var(--muted)]">{total} matching record{total === 1 ? "" : "s"}</p>
           </div>
-          <p className="text-xs font-bold text-[var(--muted)]">Page {page} of {totalPages}</p>
+          <div className="flex items-center gap-3">
+            <p className="text-xs font-bold text-[var(--muted)]">Page {page} of {totalPages}</p>
+            {canVerify ? (
+              <form action={reconcileAllPendingFplRegistrationsAction}>
+                <input type="hidden" name="return_to" value={currentListHref} />
+                <button className="rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-black text-white">
+                  Check all pending FPL entries
+                </button>
+              </form>
+            ) : null}
+          </div>
         </div>
 
         {registrations.length ? (
@@ -403,6 +431,18 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                             Risk {label(verification?.duplicate_risk ?? "none")}
                           </span>
                         </div>
+                        {verification?.fpl_checked_at ? (
+                          <p className="mt-3 text-xs text-[var(--muted)]">
+                            Last FPL check: {formatDate(verification.fpl_checked_at)}
+                          </p>
+                        ) : verification?.fpl_status === "pending" ? (
+                          <p className="mt-3 text-xs font-bold text-amber-700">Not checked automatically yet</p>
+                        ) : null}
+                        {verification?.fpl_status === "pending" && verification.fpl_notes ? (
+                          <p className="mt-1 max-w-sm text-xs leading-5 text-[var(--muted)]">
+                            {verification.fpl_notes}
+                          </p>
+                        ) : null}
                       </td>
                       <td className="px-5 py-5">
                         <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase ${badgeClasses(registration.status)}`}>
