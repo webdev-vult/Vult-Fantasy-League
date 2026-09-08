@@ -66,7 +66,7 @@ export default async function RegistrationSuccessPage({
             {!registration
               ? "Return to the registration page and complete the form to receive the private Vult FPL league link."
               : awaitingFpl
-              ? `FPL has not published your league entry yet. Vult will keep checking automatically. You will not be included in completed Gameweeks, and your prize eligibility begins from Gameweek ${eligibleFromRound ?? "the next open Gameweek"}.`
+              ? `FPL has not published your league entry yet. Vult will keep checking automatically. Weekly prize eligibility begins from Gameweek ${eligibleFromRound ?? "the next open Gameweek"}. Once approved, your monthly ranking includes every official FPL Gameweek in that calendar month, and your overall ranking uses your official FPL season total.`
               : "Your FPL entry was found in the official league. Vult will complete its duplicate-entry review before approving the registration."}
           </p>
 

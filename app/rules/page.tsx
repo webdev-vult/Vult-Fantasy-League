@@ -80,6 +80,15 @@ export default async function RulesPage() {
             </section>
 
             <section className="rounded-[2rem] border border-[var(--border)] bg-white p-7 shadow-sm">
+              <h2 className="text-2xl font-black text-[var(--brand-strong)]">Scoring eligibility by leaderboard</h2>
+              <div className="mt-4 space-y-3 text-sm leading-7 text-[var(--muted)]">
+                <p><strong className="text-[var(--brand-strong)]">Weekly:</strong> a participant can compete from their recorded eligible Gameweek; completed earlier Gameweeks remain excluded from weekly prizes.</p>
+                <p><strong className="text-[var(--brand-strong)]">Monthly:</strong> once approved during a calendar month, the participant&apos;s official FPL points from every Gameweek assigned to that month are counted.</p>
+                <p><strong className="text-[var(--brand-strong)]">Overall:</strong> approved participants are ranked by their official cumulative FPL season total, including points earned before joining the Vult league.</p>
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-[var(--border)] bg-white p-7 shadow-sm">
               <h2 className="text-2xl font-black text-[var(--brand-strong)]">Chip usage</h2>
               <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
                 Chip usage remains visible for transparency, but it does not reduce points, change rank or exclude a manager from weekly prize consideration.
