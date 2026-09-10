@@ -10,6 +10,7 @@ import {
   updateParticipantProfileAction,
   updateVultVerificationAction,
 } from "../actions";
+import { PendingSubmitButton } from "../pending-submit-button";
 
 type PageParams = Promise<{ registrationId: string }>;
 type SearchParams = Promise<{ success?: string; error?: string; return_to?: string }>;
@@ -380,9 +381,11 @@ export default async function ParticipantDetailPage({
               <form action={reconcilePendingFplRegistrationAction} className="mt-5">
                 <input type="hidden" name="registration_id" value={registration.id} />
                 <input type="hidden" name="return_to" value={returnTo} />
-                <button className="rounded-xl border border-[var(--brand)] px-4 py-2.5 text-sm font-black text-[var(--brand)]">
-                  Check official FPL league now
-                </button>
+                <PendingSubmitButton
+                  idleLabel="Check official FPL league now"
+                  pendingLabel="Checking official FPL league…"
+                  className="rounded-xl border border-[var(--brand)] px-4 py-2.5 text-sm font-black text-[var(--brand)]"
+                />
               </form>
             ) : null}
 
