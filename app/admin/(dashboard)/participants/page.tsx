@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { reconcileAllPendingFplRegistrationsAction } from "./actions";
+import { PendingSubmitButton } from "./pending-submit-button";
 
 const PAGE_SIZE = 20;
 
@@ -382,9 +383,11 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
             {canVerify ? (
               <form action={reconcileAllPendingFplRegistrationsAction}>
                 <input type="hidden" name="return_to" value={currentListHref} />
-                <button className="rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-black text-white">
-                  Check all pending FPL entries
-                </button>
+                <PendingSubmitButton
+                  idleLabel="Check all pending FPL entries"
+                  pendingLabel="Checking all pending entries…"
+                  className="rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-black text-white"
+                />
               </form>
             ) : null}
           </div>

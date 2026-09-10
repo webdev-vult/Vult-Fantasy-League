@@ -88,6 +88,27 @@ export function matchIdentity<T>(
   requested: { teamName: string; managerName: string },
   candidates: IdentityCandidate<T>[],
 ): IdentityMatchResult<T> {
+  const requestedTeamKey = normalizeIdentity(requested.teamName);
+  const requestedManagerKey = normalizeIdentity(requested.managerName);
+  const exactTeamMatches = candidates.filter(
+    (candidate) => requestedTeamKey && normalizeIdentity(candidate.teamName) === requestedTeamKey,
+  );
+  const exactManagerMatches = candidates.filter(
+    (candidate) => requestedManagerKey && normalizeIdentity(candidate.managerName) === requestedManagerKey,
+  );
+  const uniquelyIdentified = new Set<T>();
+
+  if (exactTeamMatches.length === 1) uniquelyIdentified.add(exactTeamMatches[0].value);
+  if (exactManagerMatches.length === 1) uniquelyIdentified.add(exactManagerMatches[0].value);
+
+  // FPL display names are often nicknames rather than legal names. An exact,
+  // unique team OR manager name is enough to identify an entry. If the two
+  // submitted fields identify different entries, require human review.
+  if (uniquelyIdentified.size === 1) {
+    return { status: "matched", candidate: [...uniquelyIdentified][0] };
+  }
+  if (uniquelyIdentified.size > 1) return { status: "ambiguous" };
+
   const scored: ScoredCandidate<T>[] = [];
 
   for (const candidate of candidates) {
