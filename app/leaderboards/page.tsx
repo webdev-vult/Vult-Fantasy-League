@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createHash } from "node:crypto";
 import Link from "next/link";
 import { SiteFooter } from "@/components/public/site-footer";
 import { SiteHeader } from "@/components/public/site-header";
@@ -50,6 +51,12 @@ type LeaderboardRow = {
 
 type ApprovedRegistration = {
   id: string;
+};
+
+type RegistrationVerification = {
+  registration_id: string;
+  vult_status: string;
+  vult_kyc_level: number;
 };
 
 type FantasyEntry = {
@@ -160,12 +167,17 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = createAdminSupabaseClient() as any;
       if (selectedScope === "overall") {
-        const [registrationResult, scoreResult] = await Promise.all([
+        const [registrationResult, verificationResult, scoreResult] = await Promise.all([
           db
             .from("registrations")
             .select("id")
             .eq("competition_season_id", competition.id)
             .eq("status", "approved"),
+          db
+            .from("registration_verifications")
+            .select("registration_id, vult_status, vult_kyc_level")
+            .eq("vult_status", "verified")
+            .gte("vult_kyc_level", 1),
           db
             .from("season_scores")
             .select(
@@ -176,10 +188,21 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
         ]);
 
         if (registrationResult.error) throw new Error(registrationResult.error.message);
+        if (verificationResult.error) throw new Error(verificationResult.error.message);
         if (scoreResult.error) throw new Error(scoreResult.error.message);
 
-        const approved = (registrationResult.data ?? []) as ApprovedRegistration[];
-        const scores = (scoreResult.data ?? []) as SeasonScore[];
+        const qualifiedRegistrationIds = new Set(
+          ((verificationResult.data ?? []) as RegistrationVerification[]).map(
+            (verification) => verification.registration_id,
+          ),
+        );
+        const approved = ((registrationResult.data ?? []) as ApprovedRegistration[]).filter(
+          (registration) => qualifiedRegistrationIds.has(registration.id),
+        );
+        const approvedRegistrationIds = new Set(approved.map((registration) => registration.id));
+        const scores = ((scoreResult.data ?? []) as SeasonScore[]).filter((score) =>
+          approvedRegistrationIds.has(score.registration_id),
+        );
         const registrationIds = approved.map((item) => item.id);
         const entryResult = registrationIds.length
           ? await db
@@ -230,7 +253,8 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
             if (a.rank === null) return 1;
             if (b.rank === null) return -1;
             return a.rank - b.rank;
-          });
+          })
+          .map((row, index) => ({ ...row, rank: row.awaitingScore ? null : index + 1 }));
 
         const normalizedQuery = query.toLocaleLowerCase();
         const filteredRows = normalizedQuery
@@ -250,18 +274,29 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
           0,
         );
       } else {
-      const { data: publicationRows, error: publicationError } = await db
-        .from("leaderboard_publications")
-        .select(
-          "id, scope, title, revision, row_count, is_provisional, published_at, round_id, monthly_period_id",
-        )
-        .eq("competition_season_id", competition.id)
-        .eq("status", "published")
-        .eq("scope", selectedScope)
-        .order("published_at", { ascending: false });
+      const [publicationResult, verificationResult] = await Promise.all([
+        db
+          .from("leaderboard_publications")
+          .select(
+            "id, scope, title, revision, row_count, is_provisional, published_at, round_id, monthly_period_id",
+          )
+          .eq("competition_season_id", competition.id)
+          .eq("status", "published")
+          .eq("scope", selectedScope)
+          .order("published_at", { ascending: false }),
+        db
+          .from("registration_verifications")
+          .select("registration_id, vult_status, vult_kyc_level")
+          .eq("vult_status", "verified")
+          .gte("vult_kyc_level", 1),
+      ]);
 
-      if (publicationError) throw new Error(publicationError.message);
-      publications = (publicationRows ?? []) as Publication[];
+      if (publicationResult.error) throw new Error(publicationResult.error.message);
+      if (verificationResult.error) throw new Error(verificationResult.error.message);
+      publications = (publicationResult.data ?? []) as Publication[];
+      const qualifiedSourceKeys = ((verificationResult.data ?? []) as RegistrationVerification[]).map(
+        (verification) => createHash("md5").update(verification.registration_id).digest("hex"),
+      );
       const roundIds = [...new Set(publications.flatMap((item) => item.round_id ? [item.round_id] : []))];
       const periodIds = [...new Set(publications.flatMap((item) => item.monthly_period_id ? [item.monthly_period_id] : []))];
       const [{ data: roundRows, error: roundError }, { data: periodRows, error: periodError }] = await Promise.all([
@@ -280,25 +315,34 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
       selectedPublication = publications.find((item) => item.id === params.publication) ?? publications[0];
 
       if (selectedPublication) {
-        let rowQuery = db
-          .from("public_leaderboard_rows")
-          .select(
-            "id, rank, previous_rank, movement, display_name, team_name, points, provider_total_points, gameweeks_counted, chip_used, weekly_eligible, is_tied, metadata",
-            { count: "exact" },
-          )
-          .eq("publication_id", selectedPublication.id)
-          .order("rank", { ascending: true })
-          .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
+        if (!qualifiedSourceKeys.length) {
+          rows = [];
+          totalRows = 0;
+        } else {
+          let rowQuery = db
+            .from("public_leaderboard_rows")
+            .select(
+              "id, rank, previous_rank, movement, display_name, team_name, points, provider_total_points, gameweeks_counted, chip_used, weekly_eligible, is_tied, metadata",
+              { count: "exact" },
+            )
+            .eq("publication_id", selectedPublication.id)
+            .in("source_key", qualifiedSourceKeys)
+            .order("rank", { ascending: true })
+            .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
-        if (query) {
-          const escaped = query.replaceAll(",", " ").replaceAll("%", "");
-          rowQuery = rowQuery.or(`display_name.ilike.%${escaped}%,team_name.ilike.%${escaped}%`);
+          if (query) {
+            const escaped = query.replaceAll(",", " ").replaceAll("%", "");
+            rowQuery = rowQuery.or(`display_name.ilike.%${escaped}%,team_name.ilike.%${escaped}%`);
+          }
+
+          const { data, error, count } = await rowQuery;
+          if (error) throw new Error(error.message);
+          rows = ((data ?? []) as LeaderboardRow[]).map((row, index) => ({
+            ...row,
+            rank: (currentPage - 1) * pageSize + index + 1,
+          }));
+          totalRows = count ?? 0;
         }
-
-        const { data, error, count } = await rowQuery;
-        if (error) throw new Error(error.message);
-        rows = (data ?? []) as LeaderboardRow[];
-        totalRows = count ?? 0;
       }
       }
     } catch (error) {
@@ -410,7 +454,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
                 <h2 className="mt-1 text-2xl font-black text-[var(--brand-strong)]">{selectedScope === "overall" ? "Live Overall Standings" : publicationLabel(selectedPublication!, roundMap, periodMap)}</h2>
               </div>
               <p className="text-sm font-bold text-[var(--muted)]">
-                {totalRows} {selectedScope === "overall" ? "approved" : "ranked"} entries
+                {totalRows} {selectedScope === "overall" ? "KYC-qualified" : "ranked"} entries
               </p>
             </div>
 

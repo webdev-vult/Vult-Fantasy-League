@@ -72,7 +72,7 @@ export default async function RegisterPage() {
           </dl>
 
           <div className="mt-8 rounded-2xl bg-white/10 p-4 text-xs leading-6 text-blue-100">
-            There is no age limit to play. Vult will resolve your numeric FPL Entry ID and check duplicates before approval. KYC Level 1 is checked only if you are selected for a weekly, monthly or overall prize.
+            There is no age limit to register. Vult will resolve your numeric FPL Entry ID and check duplicates before approval. An active Vult account with verified KYC Level 1 or higher is required to appear on Gameweek, monthly and overall leaderboards and to receive a prize.
           </div>
         </aside>
 

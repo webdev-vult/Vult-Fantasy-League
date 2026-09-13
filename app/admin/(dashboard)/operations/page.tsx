@@ -562,7 +562,7 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="font-black text-[var(--brand-strong)]">v{rule.version} — {rule.title}</p>
-                          <p className="mt-1 text-xs text-[var(--muted)]">KYC Level {rule.minimum_vult_kyc_level}+ required for prizes • Dispute window {rule.dispute_window_hours} hours</p>
+                          <p className="mt-1 text-xs text-[var(--muted)]">KYC Level {rule.minimum_vult_kyc_level}+ required for leaderboards and prizes • Dispute window {rule.dispute_window_hours} hours</p>
                         </div>
                         <div className="flex flex-wrap justify-end gap-2">
                           {rule.version === selectedSeason.rules_version ? (
@@ -577,7 +577,7 @@ export default async function CompetitionOperationsPage({ searchParams }: { sear
                       <p><strong className="text-[var(--brand-strong)]">Chip usage:</strong> Recorded only</p>
                       <p><strong className="text-[var(--brand-strong)]">Transfer costs:</strong> Recorded only</p>
                       <p><strong className="text-[var(--brand-strong)]">Vult account to play:</strong> No</p>
-                      <p><strong className="text-[var(--brand-strong)]">Prize KYC:</strong> Level {rule.minimum_vult_kyc_level} or higher</p>
+                      <p><strong className="text-[var(--brand-strong)]">Leaderboard and prize KYC:</strong> Level {rule.minimum_vult_kyc_level} or higher</p>
                       <p><strong className="text-[var(--brand-strong)]">Employees eligible:</strong> {rule.employees_eligible ? "Yes" : "No"}</p>
                       <p className="sm:col-span-2"><strong className="text-[var(--brand-strong)]">Tie-breaker:</strong> Point arrival order</p>
                     </div>
