@@ -416,7 +416,7 @@ export default async function ParticipantDetailPage({
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--brand)]">Vult prize eligibility</p>
             <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Check the winner&apos;s Vult KYC level</h2>
             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              This check does not affect participation or leaderboard rank. It is used only when deciding weekly, monthly and overall prize winners. The current rule requires KYC Level {minimumVultKycLevel} or higher.
+              This check controls leaderboard and prize eligibility. The participant appears in Gameweek, monthly and overall standings only when the Vult account is verified at KYC Level {minimumVultKycLevel} or higher.
             </p>
 
             <div className="mt-5 rounded-2xl bg-[#f7f8fc] p-4">

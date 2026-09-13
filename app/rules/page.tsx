@@ -58,7 +58,7 @@ export default async function RulesPage() {
             <div className="grid gap-5 md:grid-cols-2">
               {[
                 ["Eligible countries", rules.eligible_country_codes.join(", ")],
-                ["Vult KYC for prizes", `Level ${rules.minimum_vult_kyc_level} or higher`],
+                ["Vult KYC for leaderboards and prizes", `Level ${rules.minimum_vult_kyc_level} or higher`],
                 ["Entries per participant", rules.one_entry_per_participant ? "One entry" : "Multiple entries allowed"],
                 ["Employee eligibility", rules.employees_eligible ? "Eligible" : "Not eligible"],
                 ["Transfer costs", "Recorded only — not deducted"],
@@ -73,18 +73,18 @@ export default async function RulesPage() {
             </div>
 
             <section className="rounded-[2rem] border border-blue-200 bg-blue-50 p-7">
-              <h2 className="text-2xl font-black text-[var(--brand-strong)]">Everyone can play</h2>
+              <h2 className="text-2xl font-black text-[var(--brand-strong)]">KYC is required for the leaderboards</h2>
               <p className="mt-3 text-sm leading-7 text-blue-950">
-                There is no age limit and a Vult account is not required to enter or appear in the standings. Vult KYC Level {rules.minimum_vult_kyc_level} or higher is required only when confirming a weekly, monthly or overall prize winner. If the selected manager does not meet that requirement, the prize moves to the next eligible manager.
+                There is no age limit to register. An active Vult account with verified KYC Level {rules.minimum_vult_kyc_level} or higher is required to appear in Gameweek, monthly and overall standings and to receive a prize. A registration may remain saved while KYC is pending, but it is not ranked until the requirement is confirmed.
               </p>
             </section>
 
             <section className="rounded-[2rem] border border-[var(--border)] bg-white p-7 shadow-sm">
               <h2 className="text-2xl font-black text-[var(--brand-strong)]">Scoring eligibility by leaderboard</h2>
               <div className="mt-4 space-y-3 text-sm leading-7 text-[var(--muted)]">
-                <p><strong className="text-[var(--brand-strong)]">Weekly:</strong> a participant can compete from their recorded eligible Gameweek; completed earlier Gameweeks remain excluded from weekly prizes.</p>
-                <p><strong className="text-[var(--brand-strong)]">Monthly:</strong> once approved during a calendar month, the participant&apos;s official FPL points from every Gameweek assigned to that month are counted.</p>
-                <p><strong className="text-[var(--brand-strong)]">Overall:</strong> approved participants are ranked by their official cumulative FPL season total, including points earned before joining the Vult league.</p>
+                <p><strong className="text-[var(--brand-strong)]">Weekly:</strong> a KYC-qualified participant can compete from their recorded eligible Gameweek; completed earlier Gameweeks remain excluded from weekly prizes.</p>
+                <p><strong className="text-[var(--brand-strong)]">Monthly:</strong> once approved and KYC-qualified during a calendar month, the participant&apos;s official FPL points from every Gameweek assigned to that month are counted.</p>
+                <p><strong className="text-[var(--brand-strong)]">Overall:</strong> approved, KYC-qualified participants are ranked by their official cumulative FPL season total, including points earned before joining the Vult league.</p>
               </div>
             </section>
 

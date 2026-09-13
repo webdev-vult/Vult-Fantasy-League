@@ -114,7 +114,7 @@ export function RegistrationForm({
       <section className="border-t border-[var(--border)] pt-8">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--brand)]">Declarations</p>
         <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-          Everyone may play regardless of age. To receive a weekly, monthly or overall prize, a selected winner must have completed Vult KYC Level 1 or higher when Vult performs the winner check.
+          Everyone may register regardless of age. To appear on Gameweek, monthly or overall leaderboards and receive a prize, your active Vult account must have verified KYC Level 1 or higher.
         </div>
         <div className="mt-5 space-y-4">
           <label className="flex gap-3 rounded-2xl border border-[var(--border)] bg-white p-4 text-sm leading-6 text-[var(--muted)]">
