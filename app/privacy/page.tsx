@@ -19,7 +19,7 @@ const sections = [
   },
   {
     title: "Later verification and prize information",
-    body: "Additional information may be recorded for leaderboard eligibility, compliance, winner review or prize settlement. This can include the Vult account check, recorded KYC level, payment transaction references, payment evidence and administrative review notes. An active Vult account with verified KYC Level 1 or higher is required before a participant appears in Gameweek, monthly or overall standings and before a prize can be awarded.",
+    body: "Additional information may be recorded for compliance, winner review or prize settlement. This can include the Vult account check, recorded KYC level, payment transaction references, payment evidence and administrative review notes. KYC does not restrict participation or leaderboard visibility for approved, FPL-verified participants. If selected for a prize, an active Vult account with verified KYC Level 1 or higher is required before winner confirmation and payment.",
   },
   {
     title: "Why the information is used",
