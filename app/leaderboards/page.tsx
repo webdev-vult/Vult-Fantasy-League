@@ -53,12 +53,6 @@ type ApprovedRegistration = {
   id: string;
 };
 
-type RegistrationVerification = {
-  registration_id: string;
-  vult_status: string;
-  vult_kyc_level: number;
-};
-
 type FantasyEntry = {
   registration_id: string;
   manager_name: string | null;
@@ -166,40 +160,27 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
       // Database types are intentionally narrowed after each public query below.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = createAdminSupabaseClient() as any;
+      // Participation depends on approval and a verified FPL entry, never KYC.
+      const { data: registrationData, error: registrationError } = await db
+        .from("registrations")
+        .select("id, registration_verifications!inner(fpl_status), fantasy_entries!inner(verified_at)")
+        .eq("competition_season_id", competition.id)
+        .eq("status", "approved")
+        .eq("eligibility_status", "eligible")
+        .eq("registration_verifications.fpl_status", "verified")
+        .not("fantasy_entries.verified_at", "is", null);
+      if (registrationError) throw new Error(registrationError.message);
+      const approved = (registrationData ?? []) as ApprovedRegistration[];
+      const approvedRegistrationIds = new Set(approved.map((registration) => registration.id));
       if (selectedScope === "overall") {
-        const [registrationResult, verificationResult, scoreResult] = await Promise.all([
-          db
-            .from("registrations")
-            .select("id")
-            .eq("competition_season_id", competition.id)
-            .eq("status", "approved"),
-          db
-            .from("registration_verifications")
-            .select("registration_id, vult_status, vult_kyc_level")
-            .eq("vult_status", "verified")
-            .gte("vult_kyc_level", 1),
-          db
+        const scoreResult = await db
             .from("season_scores")
             .select(
               "id, registration_id, effective_points, provider_total_points, gameweeks_counted, rank, previous_rank, movement, is_provisional, calculated_at",
             )
             .eq("competition_season_id", competition.id)
-            .order("rank", { ascending: true }),
-        ]);
-
-        if (registrationResult.error) throw new Error(registrationResult.error.message);
-        if (verificationResult.error) throw new Error(verificationResult.error.message);
+            .order("rank", { ascending: true });
         if (scoreResult.error) throw new Error(scoreResult.error.message);
-
-        const qualifiedRegistrationIds = new Set(
-          ((verificationResult.data ?? []) as RegistrationVerification[]).map(
-            (verification) => verification.registration_id,
-          ),
-        );
-        const approved = ((registrationResult.data ?? []) as ApprovedRegistration[]).filter(
-          (registration) => qualifiedRegistrationIds.has(registration.id),
-        );
-        const approvedRegistrationIds = new Set(approved.map((registration) => registration.id));
         const scores = ((scoreResult.data ?? []) as SeasonScore[]).filter((score) =>
           approvedRegistrationIds.has(score.registration_id),
         );
@@ -274,8 +255,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
           0,
         );
       } else {
-      const [publicationResult, verificationResult] = await Promise.all([
-        db
+      const publicationResult = await db
           .from("leaderboard_publications")
           .select(
             "id, scope, title, revision, row_count, is_provisional, published_at, round_id, monthly_period_id",
@@ -283,19 +263,12 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
           .eq("competition_season_id", competition.id)
           .eq("status", "published")
           .eq("scope", selectedScope)
-          .order("published_at", { ascending: false }),
-        db
-          .from("registration_verifications")
-          .select("registration_id, vult_status, vult_kyc_level")
-          .eq("vult_status", "verified")
-          .gte("vult_kyc_level", 1),
-      ]);
+          .order("published_at", { ascending: false });
 
       if (publicationResult.error) throw new Error(publicationResult.error.message);
-      if (verificationResult.error) throw new Error(verificationResult.error.message);
       publications = (publicationResult.data ?? []) as Publication[];
-      const qualifiedSourceKeys = ((verificationResult.data ?? []) as RegistrationVerification[]).map(
-        (verification) => createHash("md5").update(verification.registration_id).digest("hex"),
+      const qualifiedSourceKeys = approved.map(
+        (registration) => createHash("md5").update(registration.id).digest("hex"),
       );
       const roundIds = [...new Set(publications.flatMap((item) => item.round_id ? [item.round_id] : []))];
       const periodIds = [...new Set(publications.flatMap((item) => item.monthly_period_id ? [item.monthly_period_id] : []))];
@@ -337,10 +310,8 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
 
           const { data, error, count } = await rowQuery;
           if (error) throw new Error(error.message);
-          rows = ((data ?? []) as LeaderboardRow[]).map((row, index) => ({
-            ...row,
-            rank: (currentPage - 1) * pageSize + index + 1,
-          }));
+          // Preserve the published rank when searching or paging a snapshot.
+          rows = (data ?? []) as LeaderboardRow[];
           totalRows = count ?? 0;
         }
       }
@@ -454,7 +425,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
                 <h2 className="mt-1 text-2xl font-black text-[var(--brand-strong)]">{selectedScope === "overall" ? "Live Overall Standings" : publicationLabel(selectedPublication!, roundMap, periodMap)}</h2>
               </div>
               <p className="text-sm font-bold text-[var(--muted)]">
-                {totalRows} {selectedScope === "overall" ? "KYC-qualified" : "ranked"} entries
+                {totalRows} {selectedScope === "overall" ? "approved, FPL-verified" : "ranked"} entries
               </p>
             </div>
 

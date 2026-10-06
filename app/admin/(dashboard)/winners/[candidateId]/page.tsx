@@ -357,6 +357,10 @@ export default async function WinnerCandidatePage({
       <section className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--brand)]">Approval workflow</p>
         <h2 className="mt-2 text-2xl font-black text-[var(--brand-strong)]">Human review and confirmation</h2>
+        <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+          Candidates qualify regardless of KYC level. If KYC is pending or Level 0, keep the candidate in review and ask them to complete Level 1 or higher. Record the verified Vult account on their participant record before approving compliance or confirming the prize. The server checks the current KYC record at both steps.
+          {registration?.id ? <> <Link href={`/admin/participants/${registration.id}`} className="font-bold text-[var(--brand)] underline">Open participant KYC check</Link>.</> : null}
+        </p>
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           {[
             ["Competition review", candidate.competition_review_status, candidate.competition_reviewed_at, candidate.competition_reviewed_by, candidate.competition_review_notes],

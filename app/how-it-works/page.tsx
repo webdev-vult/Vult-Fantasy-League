@@ -33,7 +33,7 @@ const steps = [
   {
     title: "Complete entry review",
     description:
-      "Vult checks FPL membership, duplicate risk and the published competition requirements. Your registration remains saved while KYC is pending, but verified KYC Level 1 or higher is required before you appear in the standings.",
+      "Vult checks FPL membership, duplicate risk and the published competition requirements. Once approved and FPL-verified, you qualify for the standings at any KYC level, including Level 0.",
   },
   {
     title: "Compete across the season",
@@ -43,7 +43,7 @@ const steps = [
   {
     title: "Winner review and payment",
     description:
-      "Vult checks that the selected manager still has an active account with KYC Level 1 or higher before confirming and paying any weekly, monthly or overall prize.",
+      "A top-scoring manager can be selected at any KYC level. If selected, Vult checks the account and asks you to complete KYC Level 1 or higher if needed before confirming and paying any weekly, monthly or overall prize.",
   },
 ];
 
