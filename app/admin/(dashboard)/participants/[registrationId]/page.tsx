@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   addRegistrationNoteAction,
+  correctPendingFplIdentityAction,
   reconcilePendingFplRegistrationAction,
   refreshDuplicateRiskAction,
   transitionRegistrationStatusAction,
@@ -147,6 +148,12 @@ function stringArray(value: unknown) {
   return Array.isArray(value) ? value.map(String) : [];
 }
 
+function object(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
 const inputClass =
   "mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2.5 text-sm text-[var(--brand-strong)]";
 const labelClass = "text-xs font-black uppercase tracking-[0.13em] text-[var(--brand)]";
@@ -239,6 +246,11 @@ export default async function ParticipantDetailPage({
   const participant = registration.participant;
   const entry = registration.fantasy_entry;
   const verification = registration.verification;
+  const registrationMetadata = object(registration.metadata);
+  const submittedFplManagerName = String(registrationMetadata.submitted_manager_name ?? "").trim();
+  const submittedFplTeamName = String(registrationMetadata.submitted_team_name ?? "").trim();
+  const currentFplManagerName = verification?.fpl_manager_name ?? entry?.manager_name ?? submittedFplManagerName;
+  const currentFplTeamName = verification?.fpl_team_name ?? entry?.team_name ?? submittedFplTeamName;
   const duplicateReasons = stringArray(verification?.duplicate_risk_reasons);
   const canVerify = ["super_admin", "competition_manager", "compliance_officer"].includes(admin.role);
   const canAddNotes = ["super_admin", "competition_manager", "compliance_officer", "support_officer"].includes(admin.role);
@@ -410,6 +422,74 @@ export default async function ParticipantDetailPage({
             <p className="mt-4 text-xs text-[var(--muted)]">
               Verification source: official Vult FPL mini-league · {formatDate(verification?.fpl_checked_at ?? entry?.verified_at ?? null)}
             </p>
+
+            {!fplVerified && canVerify ? (
+              <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[#f7f8fc] p-5">
+                <p className="text-xs font-black uppercase tracking-[0.13em] text-[var(--brand)]">
+                  Correct submitted FPL details
+                </p>
+                <h3 className="mt-2 text-lg font-black text-[var(--brand-strong)]">
+                  Use the exact names shown in the participant&apos;s FPL account
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                  Saving a correction does not manually approve the participant. The platform immediately checks these names against the official Vult FPL league and only verifies a unique official match.
+                </p>
+                <p className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+                  Original submission: Manager <strong>{submittedFplManagerName || "not provided"}</strong> · Team <strong>{submittedFplTeamName || "not provided"}</strong>
+                </p>
+
+                <form action={correctPendingFplIdentityAction} className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <input type="hidden" name="registration_id" value={registration.id} />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <label>
+                    <span className={labelClass}>Official FPL manager name</span>
+                    <input
+                      name="fpl_manager_name"
+                      required
+                      minLength={3}
+                      maxLength={120}
+                      defaultValue={currentFplManagerName}
+                      placeholder="For example: Kanjia Sandy"
+                      className={inputClass}
+                    />
+                  </label>
+                  <label>
+                    <span className={labelClass}>Official FPL team name</span>
+                    <input
+                      name="fpl_team_name"
+                      required
+                      minLength={2}
+                      maxLength={120}
+                      defaultValue={currentFplTeamName}
+                      placeholder="For example: Kanjia's Team"
+                      className={inputClass}
+                    />
+                  </label>
+                  <label className="sm:col-span-2">
+                    <span className={labelClass}>Correction evidence or reason</span>
+                    <textarea
+                      name="correction_reason"
+                      required
+                      minLength={5}
+                      maxLength={500}
+                      rows={3}
+                      placeholder="For example: Confirmed from the participant's FPL profile screenshot."
+                      className={inputClass}
+                    />
+                  </label>
+                  <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2">
+                    <p className="max-w-xl text-xs leading-5 text-[var(--muted)]">
+                      The original submission is retained. The correction, administrator, evidence and verification result are added to the audit history.
+                    </p>
+                    <PendingSubmitButton
+                      idleLabel="Save names and check FPL"
+                      pendingLabel="Saving and checking FPL…"
+                      className="rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-black text-white"
+                    />
+                  </div>
+                </form>
+              </div>
+            ) : null}
           </section>
 
           <section className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm sm:p-7">

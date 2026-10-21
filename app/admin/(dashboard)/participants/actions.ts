@@ -50,6 +50,12 @@ function optionalText(formData: FormData, key: string) {
   return text(formData, key) || null;
 }
 
+function jsonObject(value: unknown): Record<string, Json | undefined> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, Json | undefined>)
+    : {};
+}
+
 function assertAllowed<T extends readonly string[]>(
   value: string,
   allowed: T,
@@ -242,6 +248,181 @@ export async function updateFplVerificationAction(formData: FormData) {
 
   refreshParticipantRoutes(registrationId);
   redirectToRegistration(registrationId, "success", "FPL verification updated.", formData);
+}
+
+export async function correctPendingFplIdentityAction(formData: FormData) {
+  const admin = await requireAdminRole(VERIFICATION_ROLES);
+  const registrationId = requiredText(formData, "registration_id", "Registration");
+  let outcome: "resolved" | "review_required" | "waiting" = "waiting";
+  let correctionSaved = false;
+
+  try {
+    const managerName = requiredText(formData, "fpl_manager_name", "FPL manager name");
+    const teamName = requiredText(formData, "fpl_team_name", "FPL team name");
+    const correctionReason = requiredText(
+      formData,
+      "correction_reason",
+      "Correction evidence or reason",
+    );
+
+    if (managerName.length < 3 || managerName.length > 120) {
+      throw new Error("FPL manager name must be between 3 and 120 characters.");
+    }
+    if (teamName.length < 2 || teamName.length > 120) {
+      throw new Error("FPL team name must be between 2 and 120 characters.");
+    }
+    if (correctionReason.length < 5 || correctionReason.length > 500) {
+      throw new Error("Correction evidence or reason must be between 5 and 500 characters.");
+    }
+
+    const supabase = await createServerSupabaseClient();
+    // These migration-backed relations are not present in the generated database types yet.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any;
+    const [registrationResult, verificationResult, entryResult] = await Promise.all([
+      db
+        .from("registrations")
+        .select("id, metadata")
+        .eq("id", registrationId)
+        .maybeSingle(),
+      db
+        .from("registration_verifications")
+        .select("fpl_status, fpl_verified_entry_id, fpl_manager_name, fpl_team_name")
+        .eq("registration_id", registrationId)
+        .maybeSingle(),
+      db
+        .from("fantasy_entries")
+        .select("id, provider_entry_id, manager_name, team_name, verified_at")
+        .eq("registration_id", registrationId)
+        .maybeSingle(),
+    ]);
+
+    if (registrationResult.error || !registrationResult.data) {
+      throw new Error(registrationResult.error?.message ?? "Registration not found.");
+    }
+    if (verificationResult.error) throw new Error(verificationResult.error.message);
+    if (entryResult.error) throw new Error(entryResult.error.message);
+
+    const verification = verificationResult.data;
+    const entry = entryResult.data;
+    if (
+      verification?.fpl_status === "verified" ||
+      verification?.fpl_verified_entry_id ||
+      entry?.verified_at ||
+      entry?.provider_entry_id
+    ) {
+      throw new Error(
+        "This FPL entry is already verified. Use the protected FPL exception workflow for any verified-identity change.",
+      );
+    }
+
+    const correctedAt = new Date().toISOString();
+    const previous = {
+      manager_name: verification?.fpl_manager_name ?? entry?.manager_name ?? null,
+      team_name: verification?.fpl_team_name ?? entry?.team_name ?? null,
+    };
+    const existingMetadata = jsonObject(registrationResult.data.metadata);
+    const updatedMetadata: Json = {
+      ...existingMetadata,
+      fpl_resolution_state: "awaiting_fpl_sync",
+      admin_corrected_manager_name: managerName,
+      admin_corrected_team_name: teamName,
+      fpl_identity_last_corrected_at: correctedAt,
+      fpl_identity_last_corrected_by: admin.id,
+    };
+
+    const { error: registrationError } = await db
+      .from("registrations")
+      .update({ metadata: updatedMetadata })
+      .eq("id", registrationId);
+    if (registrationError) throw new Error(registrationError.message);
+
+    const { error: verificationError } = await db.from("registration_verifications").upsert(
+      {
+        registration_id: registrationId,
+        fpl_status: "pending",
+        fpl_verified_entry_id: null,
+        fpl_manager_name: managerName,
+        fpl_team_name: teamName,
+        fpl_notes: `Submitted FPL names corrected by an administrator. Evidence: ${correctionReason}`,
+        fpl_checked_at: null,
+        fpl_checked_by: null,
+      },
+      { onConflict: "registration_id" },
+    );
+    if (verificationError) throw new Error(verificationError.message);
+
+    if (entry?.id) {
+      const { error: entryError } = await db
+        .from("fantasy_entries")
+        .update({ manager_name: managerName, team_name: teamName })
+        .eq("id", entry.id);
+      if (entryError) throw new Error(entryError.message);
+    }
+    correctionSaved = true;
+
+    const { error: noteError } = await db.from("registration_notes").insert({
+      registration_id: registrationId,
+      author_user_id: admin.id,
+      note_type: "verification",
+      body: `FPL identity corrected for an official league recheck. Manager: ${managerName}. Team: ${teamName}. Evidence: ${correctionReason}`,
+      is_pinned: false,
+    });
+    if (noteError) throw new Error(noteError.message);
+
+    await writeAuditLog(admin.id, "pending_fpl_identity_corrected", "registration", registrationId, {
+      previous,
+      corrected: { manager_name: managerName, team_name: teamName },
+      correction_reason: correctionReason,
+      source: "admin_participant_review",
+    });
+
+    const result = await reconcilePendingFplRegistrations({
+      registrationId,
+      actorUserId: admin.id,
+      source: "admin_single",
+    });
+    if (result.resolved > 0) {
+      outcome = "resolved";
+    } else if (result.reviewRequired > 0) {
+      outcome = "review_required";
+    }
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Unable to correct the FPL identity.";
+    if (correctionSaved) refreshParticipantRoutes(registrationId);
+    redirectToRegistration(
+      registrationId,
+      "error",
+      correctionSaved
+        ? `The corrected names were saved, but the audit or official FPL recheck could not finish: ${detail}`
+        : detail,
+      formData,
+    );
+  }
+
+  refreshParticipantRoutes(registrationId);
+  if (outcome === "resolved") {
+    redirectToRegistration(
+      registrationId,
+      "success",
+      "FPL names corrected. The official league entry was found and verified.",
+      formData,
+    );
+  }
+  if (outcome === "review_required") {
+    redirectToRegistration(
+      registrationId,
+      "error",
+      "FPL names corrected, but more than one possible entry was found. Review the match manually.",
+      formData,
+    );
+  }
+  redirectToRegistration(
+    registrationId,
+    "success",
+    "FPL names corrected and checked. No official league match was found yet, so the entry remains pending for automatic rechecks.",
+    formData,
+  );
 }
 
 export async function reconcilePendingFplRegistrationAction(formData: FormData) {
