@@ -257,6 +257,11 @@ export async function correctPendingFplIdentityAction(formData: FormData) {
   let correctionSaved = false;
 
   try {
+    if (process.env.VERCEL_ENV === "preview") {
+      throw new Error(
+        "FPL identity corrections are read-only in preview. Merge the reviewed change before updating a live participant.",
+      );
+    }
     const managerName = requiredText(formData, "fpl_manager_name", "FPL manager name");
     const teamName = requiredText(formData, "fpl_team_name", "FPL team name");
     const correctionReason = requiredText(

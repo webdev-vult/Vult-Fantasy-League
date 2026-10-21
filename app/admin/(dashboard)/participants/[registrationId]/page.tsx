@@ -255,6 +255,7 @@ export default async function ParticipantDetailPage({
   const canVerify = ["super_admin", "competition_manager", "compliance_officer"].includes(admin.role);
   const canAddNotes = ["super_admin", "competition_manager", "compliance_officer", "support_officer"].includes(admin.role);
   const fplVerified = verification?.fpl_status === "verified" && Boolean(entry?.verified_at);
+  const isPreview = process.env.VERCEL_ENV === "preview";
   const minimumVultKycLevel = ruleResult.data?.minimum_vult_kyc_level ?? 1;
 
   return (
@@ -389,7 +390,7 @@ export default async function ParticipantDetailPage({
               </div>
             )}
 
-            {!fplVerified && canVerify ? (
+            {!fplVerified && canVerify && !isPreview ? (
               <form action={reconcilePendingFplRegistrationAction} className="mt-5">
                 <input type="hidden" name="registration_id" value={registration.id} />
                 <input type="hidden" name="return_to" value={returnTo} />
@@ -437,6 +438,11 @@ export default async function ParticipantDetailPage({
                 <p className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
                   Original submission: Manager <strong>{submittedFplManagerName || "not provided"}</strong> · Team <strong>{submittedFplTeamName || "not provided"}</strong>
                 </p>
+                {isPreview ? (
+                  <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">
+                    Preview is read-only. Review the fields and wording here; saving and the official FPL recheck become available after production deployment.
+                  </p>
+                ) : null}
 
                 <form action={correctPendingFplIdentityAction} className="mt-5 grid gap-4 sm:grid-cols-2">
                   <input type="hidden" name="registration_id" value={registration.id} />
@@ -481,11 +487,21 @@ export default async function ParticipantDetailPage({
                     <p className="max-w-xl text-xs leading-5 text-[var(--muted)]">
                       The original submission is retained. The correction, administrator, evidence and verification result are added to the audit history.
                     </p>
-                    <PendingSubmitButton
-                      idleLabel="Save names and check FPL"
-                      pendingLabel="Saving and checking FPL…"
-                      className="rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-black text-white"
-                    />
+                    {isPreview ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="cursor-not-allowed rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-black text-white opacity-50"
+                      >
+                        Preview only — save disabled
+                      </button>
+                    ) : (
+                      <PendingSubmitButton
+                        idleLabel="Save names and check FPL"
+                        pendingLabel="Saving and checking FPL…"
+                        className="rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-black text-white"
+                      />
+                    )}
                   </div>
                 </form>
               </div>
